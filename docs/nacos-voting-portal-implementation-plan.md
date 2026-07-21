@@ -1,8 +1,11 @@
-# NACOS Software Exhibition & Voting Portal — Implementation Plan
+# NACOS Software Exhibition — Implementation Plan
+*(Product name: "NACOS Software Exhibition" — see naming note in Section 1)*
 
 ## 1. Overview
 
 A web platform for a department-level software/graphic design exhibition with three user groups (public/students, judges, admins) and a real-time leaderboard for venue display. Software-track entrants pay a registration fee via Paystack; graphic-design entrants may or may not (clarify with the organizing committee — see Open Questions).
+
+**Naming — read this before generating any UI copy, page titles, meta tags, or component names with an AI tool:** the product name is **"NACOS Software Exhibition."** Every screen (login, registration form, browser tab title, email/receipt subject lines, admin panel branding) should say "NACOS Software Exhibition" explicitly, not generic phrasing like "Student Portal," "NSUK Portal," or "Voting Portal." This is a standalone event microsite, not a module of the university's main student portal — the explicit name prevents an AI code-gen tool (or a first-time user) from assuming it's tied to `ug.nsuk.edu.ng` or any other existing NSUK system.
 
 ---
 
@@ -65,14 +68,26 @@ Category
 - fee_amount (decimal, kobo)
 
 Project
-- id, title, description, thumbnail_url, live_preview_url
+- id
+- registration_code (unique, indexed — e.g. "NSE26-0001", auto-generated at
+  submission time; this is the human-facing identifier the team uses to look
+  up their project, reference it in support requests, or match a payment
+  receipt to their entry. See 4.1 below for the generation scheme.)
+- title, description, thumbnail_url, live_preview_url
 - category (FK -> Category)
 - team_name, team_members (JSON or related table)
+- contact_name (team lead / point of contact)
+- contact_email
+- contact_phone
 - registration_status (pending_payment / paid / confirmed)
 - created_at
 
 Payment
-- id, project (FK)
+- id, project (FK)  -> this FK is what attributes a payment to a specific
+  project; a project cannot have more than one *successful* payment
+  (enforce with a partial unique constraint or an application check on
+  status=success), but can have multiple pending/failed attempts if a
+  student retries after a failed charge.
 - paystack_reference (unique)
 - amount, status (pending/success/failed)
 - verified_at
@@ -105,6 +120,25 @@ Score
 - UNIQUE constraint on (judge, project, criterion)
 ```
 
+### 4.1 Project Identity, Ownership & Contact Info
+
+Two distinct problems were previously underspecified — worth being explicit about the fix:
+
+**"Which user does this project belong to?"** You don't need a full user-accounts system with passwords for entrants (that's overkill for a one-time event registration). Instead, `contact_name`, `contact_email`, and `contact_phone` on `Project` *are* the ownership record — whoever registered the project is identified by that contact info, and it's also what makes the "opportunity contact" feature work (section 4.2 below). If a team needs to edit their submission later, they authenticate that edit request by supplying their `registration_code` + the `contact_email` they registered with (a simple "look up my project" form), rather than a full login system.
+
+**"How do we uniquely identify a project across registration, payment, and voting?"** — the `registration_code`, generated once at successful registration:
+
+- Format: `NSE26-XXXX` (**N**ACOS **S**oftware **E**xhibition, year, then a zero-padded sequential or short random suffix) — e.g. `NSE26-0001`, `NSE26-0002`. Django: an `AutoField`/sequence combined with a save-time formatter, or `uuid4().hex[:6].upper()` if you'd rather avoid guessable sequential codes (marginally more ballot-stuffing-resistant since it stops someone from enumerating `NSE26-0001` through `NSE26-0099`).
+- This code is what appears on the Paystack payment description/reference metadata, on the project's public card (small, unobtrusive — organizers and judges use it to disambiguate two similarly-named projects), and in any support communication ("my payment didn't confirm, my code is NSE26-0034").
+- `Payment.project` (the FK) is the actual attribution mechanism in the database — the `registration_code` is the *human-readable* face of that same relationship, so a student or organizer can talk about "project NSE26-0034" without needing to know or share the internal numeric `id`.
+
+### 4.2 Contact Info as a Feature, Not Just a Field
+
+Since `contact_email` / `contact_phone` are being captured anyway for registration and payment purposes, surface them (with consent) on the public project card or a "Contact the team" button on the project detail view — this turns the exhibition into a light networking/opportunity layer, letting other students, judges, or visiting recruiters reach out to a team whose project impressed them. Two implementation notes:
+
+- Add a `show_contact_publicly` boolean (default `True`, but let teams opt out at registration) so a team that doesn't want their personal number public can hide it while still satisfying the internal attribution requirement.
+- Don't render a raw `mailto:`/`tel:` phone number by default if you want to cut down on spam scraping — a simple "Contact team" button that reveals the info on click, or a lightweight contact form that emails the team without exposing the address directly, is a cheap upgrade if you have time; the plain link is fine for a first pass given the 2-day build window.
+
 **Critical DB-level safeguard:** enforce the one-vote-per-matric-per-category rule with a Postgres `UNIQUE` constraint (`unique_together` in Django), not just a pre-check in application code. A pre-check + insert has a race condition under concurrent requests (many students voting in the same 10 seconds); the DB constraint is what actually prevents ballot stuffing.
 
 ---
@@ -115,6 +149,7 @@ Score
 - Simple DRF `ListAPIView` on `Project`, filtered by `category`, with search on `title`/`description` (use Postgres `SearchVector` or just `icontains` — you don't need Elasticsearch for a department-sized entry list).
 - Thumbnails: store in Django's media storage or Cloudinary/S3-compatible bucket if self-hosting storage is a pain on your VPS.
 - "Live Preview Link" just opens in a new tab (`target="_blank"`) — no iframe embedding needed, and iframes will break for entries with restrictive CSP/X-Frame-Options anyway.
+- Each card shows the `registration_code` in small print (e.g. bottom-right corner) for disambiguation, plus a "Contact team" affordance if `show_contact_publicly` is true (see 4.2).
 
 ### 5.2 Matric Number Verification
 - No password needed — matric number acts as a lightweight identity token, but combine it with a simple check (e.g. matric number format regex + optional pre-loaded roster of valid matric numbers if the department can supply one, to block obviously fake entries like "TEST123").
@@ -139,7 +174,7 @@ Score
 
 ## 6. Paystack Integration (Software Track Registration)
 
-1. **Initialize transaction** (backend): `POST https://api.paystack.co/transaction/initialize` with `email`, `amount` (in kobo), and a `reference` you generate and store against the `Payment` row as `pending`.
+1. **Initialize transaction** (backend): `POST https://api.paystack.co/transaction/initialize` with `email` (the project's `contact_email`), `amount` (in kobo), a `reference` you generate and store against the `Payment` row as `pending`, and `metadata.registration_code` set to the project's code — this makes the project instantly identifiable from inside the Paystack dashboard itself if you ever need to manually cross-check a disputed payment.
 2. **Redirect/Inline**: use Paystack Inline JS popup on the registration form (better UX than full redirect for a mobile-heavy student audience) or the hosted checkout redirect — either works.
 3. **Verify, don't trust the frontend callback**: after Paystack redirects back with success, call `GET https://api.paystack.co/transaction/verify/:reference` server-side before marking `Payment.status = success`. Never flip payment status based solely on the frontend callback — it can be spoofed.
 4. **Webhook (required, not optional)**: set up a `POST /api/paystack/webhook/` endpoint, verify the `x-paystack-signature` header (HMAC SHA512 with your secret key) on every incoming webhook, and use `charge.success` events as the authoritative source of truth for payment confirmation — this covers cases where the student closes the tab right after paying but before the redirect completes.

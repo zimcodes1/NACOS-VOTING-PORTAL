@@ -1,4 +1,6 @@
-# NACOS Voting Portal — 2-Day Build Roadmap
+# NACOS Software Exhibition — 2-Day Build Roadmap
+
+**Naming:** this system is the **"NACOS Software Exhibition"** — use that exact name in page titles, the Django project's `verbose_name`, browser tab titles, and any prompts you feed to an AI code-gen tool while scaffolding, so it doesn't get generated as or confused with a generic "student/voting portal."
 
 Scope note: 2 days gets you a working skeleton with all 5 screens wired to real endpoints, DB constraints enforced, and Paystack in **test mode**. Treat Day 2 evening as a checkpoint, not a finish line — real device testing and Paystack live-mode switch should happen after this roadmap, with buffer before the actual event.
 
@@ -89,9 +91,10 @@ CORS_ALLOWED_ORIGINS=http://localhost:5173
 
 ### Stage 2: Models + Admin (Hour 1–3)
 
-- Write all models from the data model spec: `Category`, `Project`, `Voter`, `Vote`, `Payment` (in `core`/`payments`), `Judge`, `ScoreCriterion`, `Score` (in `judging`).
+- Write all models from the data model spec: `Category`, `Project` (with `registration_code`, `contact_name`, `contact_email`, `contact_phone`, `show_contact_publicly`), `Voter`, `Vote`, `Payment` (in `core`/`payments`), `Judge`, `ScoreCriterion`, `Score` (in `judging`).
+- Add a `save()` override or a `pre_save` signal on `Project` that generates `registration_code` once, on first save only (format `NSE26-XXXX` — see implementation plan section 4.1). Test it generates a unique code even if two registrations save in the same second.
 - Add the `unique_together = ("matric_number", "category")` constraint on `Vote` immediately — this is the highest-risk rule, get it into a migration on day 1.
-- Register everything in `admin.py` for each app with sensible `list_display` (organizers will live in this admin panel to enter projects).
+- Register everything in `admin.py` for each app with sensible `list_display` (organizers will live in this admin panel to enter projects) — make sure `registration_code` and `contact_email`/`contact_phone` are visible columns so organizers can quickly look up or contact a team without opening each record.
 - Run migrations.
 
 ```bash
@@ -156,7 +159,8 @@ wait
 - Add `PAYSTACK_SECRET_KEY` usage server-side only; confirm it never appears in any frontend bundle or network request from the browser.
 
 **Frontend:**
-- Registration form for software-track entries (team info + project details).
+- Registration form for software-track entries (team info + project details + `contact_name`/`contact_email`/`contact_phone` + a checkbox for `show_contact_publicly`).
+- On successful registration, show the assigned `registration_code` prominently and tell the team to save it — it's how they'll look up or amend their entry later, and how support/organizers will refer to it if there's a payment issue.
 - Paystack Inline.js popup (`react-paystack` package optional, or vanilla script tag) using the **public** key only.
 - Post-payment redirect handling → poll `verify/:reference/` → show confirmed state.
 
