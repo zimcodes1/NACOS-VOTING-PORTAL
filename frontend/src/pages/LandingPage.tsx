@@ -4,10 +4,12 @@ import NacosWeekTimeline from "../components/landing/NacosWeekTimeline";
 import FeaturedProjects from "../components/landing/FeaturedProjects";
 import WinnerSection from "../components/landing/WinnerSection";
 import JudgesSection from "../components/landing/JudgesSection";
+import CTASection from "../components/landing/CTASection";
+import Footer from "../components/landing/Footer";
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-background text-text-primary">
+    <div className="min-h-screen bg-background text-text-primary flex flex-col">
       {/* Top Header Navbar */}
       <Navbar />
 
@@ -26,10 +28,11 @@ export default function LandingPage() {
       {/* Judges Section */}
       <JudgesSection />
 
-      {/* Additional sections */}
-      <div id="projects-grid" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {/* Placeholder for project grid */}
-      </div>
+      {/* Small CTA Section */}
+      <CTASection />
+
+      {/* Footer Section */}
+      <Footer />
     </div>
   );
 }

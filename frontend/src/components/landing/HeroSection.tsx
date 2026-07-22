@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Vote, ArrowRight, Sparkles, ShieldCheck, Layers, ArrowDownLeft } from "lucide-react";
 import { Text, Button, Badge } from "../ui";
 import { fetchPublicStats } from "../../api/dashboardAPI";
+import { useNavigate } from "@tanstack/react-router";
 
 export const HeroSection: React.FC = () => {
   const { data: stats } = useQuery({
@@ -13,7 +14,7 @@ export const HeroSection: React.FC = () => {
 
   const activeProjectsCount = stats ? stats.active_projects : 0;
   const verifiedVotersCount = stats ? stats.verified_voters : 0;
-
+  const navigate = useNavigate();
   return (
     <section className="relative overflow-hidden bg-background py-6 sm:pt-10 border-b border-border min-h-[calc(100vh-5rem)] flex items-center sm:h-screen">
       {/* Background Subtle Ambient Glows */}
@@ -71,8 +72,7 @@ export const HeroSection: React.FC = () => {
                 leftIcon={<Vote className="w-4 h-5" />}
                 rightIcon={<ArrowRight className="w-4 h-4" />}
                 onClick={() => {
-                  const el = document.getElementById("projects-grid");
-                  if (el) el.scrollIntoView({ behavior: "smooth" });
+                  navigate({ to: "/home" })
                 }}
               >
                 Explore & Vote Projects
@@ -83,8 +83,7 @@ export const HeroSection: React.FC = () => {
                 size="lg"
                 leftIcon={<Layers className="w-4 h-5" />}
                 onClick={() => {
-                  const el = document.getElementById("register-section");
-                  if (el) el.scrollIntoView({ behavior: "smooth" });
+                  navigate({ to: "/register" })
                 }}
               >
                 Register Exhibition Project
