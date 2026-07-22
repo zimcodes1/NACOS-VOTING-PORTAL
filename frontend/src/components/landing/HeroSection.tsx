@@ -158,7 +158,7 @@ export const HeroSection: React.FC = () => {
                     <img
                       src="/images/student-1.png"
                       alt="NACOS Student Innovator 1"
-                      className="w-8/10 object-cover object-center rounded-[1.9rem] transition-transform duration-300"
+                      className="w-full h-full object-cover object-center rounded-[1.9rem] transition-transform duration-300"
                     />
 
                     {/* Floating Blue Circle Badge with Arrow (Top-Right of Image 1) */}
@@ -191,7 +191,7 @@ export const HeroSection: React.FC = () => {
                     <img
                       src="/images/student-2.png"
                       alt="NACOS Student Innovator 2"
-                      className=" w-8/10 object-cover object-center rounded-[1.9rem] transition-transform duration-300"
+                      className="w-full h-full object-cover object-center rounded-[1.9rem] transition-transform duration-300"
                     />
                   </motion.div>
                 </div>

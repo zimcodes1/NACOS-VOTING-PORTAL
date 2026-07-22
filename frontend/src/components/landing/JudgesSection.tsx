@@ -1,8 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { fetchJudges } from "../../api/dashboardAPI";
 import type { Judge } from "../../utils/dataTypes";
-import { Card } from "../ui";
-import { Award, Briefcase, User } from "lucide-react";
+import { Award, Briefcase, User, ShieldCheck } from "lucide-react";
 import { motion } from "framer-motion";
 
 export default function JudgesSection() {
@@ -18,7 +17,7 @@ export default function JudgesSection() {
           <div className="h-8 bg-border rounded w-1/4 mx-auto" />
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 pt-8">
             {[1, 2, 3].map((n) => (
-              <div key={n} className="h-64 bg-border rounded-3xl" />
+              <div key={n} className="h-96 bg-border rounded-3xl" />
             ))}
           </div>
         </div>
@@ -29,63 +28,81 @@ export default function JudgesSection() {
   if (judges.length === 0) return null;
 
   return (
-    <section id="judges" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 border-t border-border/60">
-      <div className="text-center space-y-3 mb-12">
-        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-primary-light text-primary border border-primary/20">
-          <Award className="w-3.5 h-3.5" />
-          <span>Professional Evaluation Panel</span>
+    <section
+      id="judges"
+      className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24 border-t border-border/60"
+    >
+      {/* Section Header */}
+      <div className="text-center space-y-3 mb-12 sm:mb-16">
+        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-extrabold bg-primary-light text-primary border border-primary/20">
+          <Award className="w-4 h-4 text-primary" />
+          <span>PRO EVALUATION PANEL</span>
         </div>
+
         <h2 className="text-3xl font-black text-navy tracking-tight sm:text-4xl">
           Meet Our Esteemed Judges
         </h2>
-        <p className="text-sm text-text-secondary max-w-xl mx-auto">
-          Distinguished industry experts and academic professionals leading the assessment of the Software Track submissions.
+
+        <p className="text-xs sm:text-sm text-text-secondary max-w-xl mx-auto leading-relaxed">
+          Distinguished industry leaders and academic specialists presiding over the evaluation of our Software Exhibition projects.
         </p>
       </div>
 
+      {/* Judges Cards Grid with Full Image & Bottom Gradient */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
         {judges.map((judge, index) => (
           <motion.div
             key={judge.id}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: index * 0.1 }}
+            initial={{ opacity: 0, y: 25 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5, delay: index * 0.12 }}
+            className="h-full"
           >
-            <Card
-              variant="surface"
-              className="group h-full relative overflow-hidden bg-surface border border-border hover:border-primary/40 hover:shadow-2xl transition-all duration-300 rounded-3xl p-6 flex flex-col items-center text-center space-y-4"
-            >
-              {/* Judge Image Wrapper */}
-              <div className="relative w-28 h-28 rounded-full overflow-hidden border-2 border-primary/20 shadow-md group-hover:scale-105 transition-transform duration-300 bg-background flex items-center justify-center shrink-0">
-                {judge.image_url ? (
-                  <img
-                    src={judge.image_url}
-                    alt={judge.name}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <User className="w-12 h-12 text-text-muted" />
-                )}
+            <div className="group h-100 relative w-full aspect-[3/4.2] rounded-3xl overflow-hidden shadow-xl border border-border/80 hover:border-primary/50 hover:shadow-2xl transition-all duration-500 bg-navy select-none">
+              {/* Background Full Image */}
+              {judge.image_url ? (
+                <img
+                  src={judge.image_url}
+                  alt={judge.name}
+                  className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-700 ease-out"
+                  loading="lazy"
+                />
+              ) : (
+                <div className="w-full h-full bg-gradient-to-br from-navy via-navy-dark to-slate-900 flex items-center justify-center">
+                  <User className="w-24 h-24 text-white/10" />
+                </div>
+              )}
+
+              {/* Dark Gradient Overlay from Bottom Up */}
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/70 to-transparent opacity-90 group-hover:opacity-95 transition-opacity duration-300" />
+
+              {/* Top Track / Status Badge Overlay */}
+              <div className="absolute top-4 left-4 right-4 flex items-center justify-between z-10">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-extrabold bg-black/40 text-gold-light border border-white/20 backdrop-blur-md shadow-xs">
+                  <ShieldCheck className="w-3.5 h-3.5 text-gold" />
+                  Official Jury
+                </span>
               </div>
 
-              {/* Profile Details */}
-              <div className="space-y-1.5 flex-1 flex flex-col justify-between">
-                <div>
-                  <h3 className="text-lg font-black text-navy leading-snug tracking-tight group-hover:text-primary transition-colors">
-                    {judge.name || "Specialist Judge"}
-                  </h3>
-                  <div className="inline-flex items-center gap-1 text-xs text-primary font-bold mt-1">
-                    <Briefcase className="w-3.5 h-3.5" />
-                    <span>{judge.title || "Evaluation Committee Member"}</span>
-                  </div>
-                  {judge.bio && (
-                    <p className="text-xs text-text-secondary leading-relaxed mt-3 text-justify line-clamp-4">
-                      {judge.bio}
-                    </p>
-                  )}
+              {/* Bottom Details Content (White Text) */}
+              <div className="absolute bottom-0 inset-x-0 p-6 sm:p-8 flex flex-col justify-end text-left space-y-2 z-10 text-white">
+                <h3 className="text-xl sm:text-2xl font-black text-white leading-snug tracking-tight group-hover:text-gold-light transition-colors drop-shadow-sm">
+                  {judge.name || "Specialist Judge"}
+                </h3>
+
+                <div className="inline-flex items-center gap-1.5 text-xs font-extrabold text-gold-light/90">
+                  <Briefcase className="w-3.5 h-3.5 text-gold shrink-0" />
+                  <span className="truncate">{judge.title || "Evaluation Committee Member"}</span>
                 </div>
+
+                {judge.bio && (
+                  <p className="text-xs text-slate-200/90 leading-relaxed font-normal pt-1 line-clamp-3 drop-shadow-xs">
+                    {judge.bio}
+                  </p>
+                )}
               </div>
-            </Card>
+            </div>
           </motion.div>
         ))}
       </div>

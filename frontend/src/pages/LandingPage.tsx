@@ -1,6 +1,8 @@
 import Navbar from "../components/landing/Navbar";
 import HeroSection from "../components/landing/HeroSection";
 import NacosWeekTimeline from "../components/landing/NacosWeekTimeline";
+import FeaturedProjects from "../components/landing/FeaturedProjects";
+import WinnerSection from "../components/landing/WinnerSection";
 import JudgesSection from "../components/landing/JudgesSection";
 
 export default function LandingPage() {
@@ -14,6 +16,12 @@ export default function LandingPage() {
 
       {/* 5 NACOS Week Events Animated Roadmap */}
       <NacosWeekTimeline />
+
+      {/* Featured Exhibition Projects Carousel */}
+      <FeaturedProjects />
+
+      {/* Track Winners Showcase Section */}
+      <WinnerSection />
 
       {/* Judges Section */}
       <JudgesSection />
