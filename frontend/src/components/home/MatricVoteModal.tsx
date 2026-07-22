@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Modal, Input, Button } from "../ui";
 import type { VoterState, Project } from "../../utils/dataTypes";
-import { ShieldCheck, Lock, ThumbsUp, RefreshCw } from "lucide-react";
+import { ShieldCheck, Lock, ThumbsUp } from "lucide-react";
 
 interface MatricVoteModalProps {
   isOpen: boolean;
@@ -20,7 +20,6 @@ export const MatricVoteModal: React.FC<MatricVoteModalProps> = ({
   selectedProjectToVote,
   onVerify,
   onConfirmVote,
-  onClearMatric,
 }) => {
   const [matricInput, setMatricInput] = useState(
     voterState.matricNumber || ""
@@ -39,7 +38,7 @@ export const MatricVoteModal: React.FC<MatricVoteModalProps> = ({
 
     const isValid = onVerify(trimmed);
     if (!isValid) {
-      setErrorText("Invalid matric number format. E.g., CSC/2021/001");
+      setErrorText("Invalid matric number format. E.g., FT24CMP0123");
       return;
     }
 
@@ -55,7 +54,6 @@ export const MatricVoteModal: React.FC<MatricVoteModalProps> = ({
       onClose={onClose}
       title={selectedProjectToVote ? "Confirm Your Vote" : "Voter Matriculation Verification"}
       description="Each verified student is entitled to 1 vote per project category."
-      size="md"
     >
       <div className="space-y-5 pt-2">
         {/* Selected Project Confirmation Callout */}
@@ -88,22 +86,13 @@ export const MatricVoteModal: React.FC<MatricVoteModalProps> = ({
                 </div>
                 <div>
                   <div className="text-xs font-extrabold text-success">
-                    Verified Matric Number
+                    Verified Voter Matric Number
                   </div>
                   <div className="text-sm font-mono font-bold text-navy">
                     {voterState.matricNumber}
                   </div>
                 </div>
               </div>
-
-              <Button
-                variant="ghost"
-                size="sm"
-                leftIcon={<RefreshCw className="w-3.5 h-3.5" />}
-                onClick={onClearMatric}
-              >
-                Change
-              </Button>
             </div>
 
             {selectedProjectToVote ? (
@@ -130,7 +119,7 @@ export const MatricVoteModal: React.FC<MatricVoteModalProps> = ({
           <form onSubmit={handleVerifySubmit} className="space-y-4">
             <Input
               label="Matriculation Number"
-              placeholder="e.g. CSC/2021/042"
+              placeholder="e.g. FT24CYS0002"
               value={matricInput}
               onChange={(e) => setMatricInput(e.target.value)}
               helperText="Enter your official NSUK department matric number"

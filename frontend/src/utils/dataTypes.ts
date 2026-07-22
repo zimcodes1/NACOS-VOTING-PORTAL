@@ -1,7 +1,7 @@
 
 export type ProjectStatus = "pending_payment" | "paid" | "confirmed";
 
-export type ExhibitionTrack = "software" | "graphic_design" | "all";
+export type ExhibitionTrack = "software" | "graphic_design" | "ai_prompting" | "all";
 
 export interface Category {
   id: string;
@@ -31,6 +31,7 @@ export interface Project {
   live_preview_url?: string;
   category_id: string;
   category_name: string;
+  category?: Category | { id: string | number; name?: string };
   track: ExhibitionTrack;
   team_name: string;
   team_members: TeamMember[];

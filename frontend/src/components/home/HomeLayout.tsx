@@ -3,7 +3,6 @@ import { Outlet } from "@tanstack/react-router";
 import { TopBar, SideNav } from "./index";
 import { ToastContainer } from "../ui";
 import type { Category, ExhibitionTrack, VoterState } from "../../utils/dataTypes";
-import { EXHIBITION_CATEGORIES } from "../../constants/data";
 
 export interface HomeLayoutProps {
     children?: React.ReactNode;
@@ -57,7 +56,7 @@ export const HomeLayout: React.FC<HomeLayoutProps> = ({
                         onCloseMobile={() => setIsMobileNavOpen(false)}
                     />
                 </div>
-                <div className="w-full sm:w-auto">
+                <div className="w-full">
 
                     {/* Primary Content View / Outlet */}
                     <main className="flex-1 p-4 sm:p-6 w-full">

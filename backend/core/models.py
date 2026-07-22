@@ -4,8 +4,11 @@ from django.db import models
 
 class Category(models.Model):
     name = models.CharField(max_length=100)
+    slug = models.SlugField(max_length=100, blank=True, default='')
+    description = models.TextField(blank=True, default='')
     requires_payment = models.BooleanField(default=False)
     fee_amount = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
+    icon_name = models.CharField(max_length=50, blank=True, default='Grid')
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -21,28 +24,69 @@ class Project(models.Model):
         PAID = 'paid', 'Paid'
         CONFIRMED = 'confirmed', 'Confirmed'
 
+    class ExhibitionTrack(models.TextChoices):
+        SOFTWARE = 'software', 'Software Track'
+        GRAPHIC_DESIGN = 'graphic_design', 'Design Track'
+        AI_PROMPTING = 'ai_prompting', 'AI Prompting'
+
+    registration_code = models.CharField(max_length=50, unique=True, null=True, blank=True, default=None)
     title = models.CharField(max_length=255)
-    description = models.TextField()
+    tagline = models.CharField(max_length=255, blank=True, default='')
+    description = models.TextField(blank=True, default='')
     thumbnail_url = models.CharField(max_length=500, blank=True, default='')
     live_preview_url = models.CharField(max_length=500, blank=True, default='')
     category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name='projects')
+    track = models.CharField(
+        max_length=50,
+        choices=ExhibitionTrack.choices,
+        default=ExhibitionTrack.SOFTWARE,
+    )
     team_name = models.CharField(max_length=255, blank=True, default='')
     team_members = models.JSONField(default=list, blank=True)
+    contact_name = models.CharField(max_length=255, blank=True, default='')
+    contact_email = models.EmailField(blank=True, default='')
+    contact_phone = models.CharField(max_length=50, blank=True, default='')
+    show_contact_publicly = models.BooleanField(default=True)
     registration_status = models.CharField(
         max_length=20,
         choices=RegistrationStatus.choices,
         default=RegistrationStatus.CONFIRMED,
     )
+    featured = models.BooleanField(default=False)
+    tags = models.JSONField(default=list, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def save(self, *args, **kwargs):
-        # Auto-set status if category requires payment and creating new project
+        if not self.registration_code:
+            prefix_map = {
+                self.ExhibitionTrack.SOFTWARE: 'SOFT',
+                self.ExhibitionTrack.GRAPHIC_DESIGN: 'GRAP',
+                self.ExhibitionTrack.AI_PROMPTING: 'AI',
+            }
+            prefix = prefix_map.get(self.track, 'SOFT')
+
+            # Query existing code numbers for this prefix to get auto-increment next number
+            existing_codes = Project.objects.filter(
+                registration_code__startswith=f"{prefix}_"
+            ).values_list('registration_code', flat=True)
+
+            numbers = []
+            for code in existing_codes:
+                try:
+                    num = int(code.split('_')[-1])
+                    numbers.append(num)
+                except (ValueError, TypeError, IndexError):
+                    pass
+
+            next_num = (max(numbers) + 1) if numbers else 1
+            self.registration_code = f"{prefix}_{next_num:03d}"
+
         if not self.pk and self.category and self.category.requires_payment:
             self.registration_status = self.RegistrationStatus.PENDING_PAYMENT
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"{self.title} ({self.category.name})"
+        return f"{self.title} ({self.registration_code})"
 
 
 class Voter(models.Model):

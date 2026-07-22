@@ -163,7 +163,7 @@ export const DUMMY_PROJECTS: Project[] = [
 ];
 
 export const INITIAL_VOTER_STATE: VoterState = {
-  matricNumber: "CSC/2021/042",
-  isVerified: true,
+  matricNumber: null,
+  isVerified: false,
   votedCategoryIds: [],
 };

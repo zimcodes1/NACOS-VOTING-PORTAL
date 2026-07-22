@@ -220,7 +220,7 @@ export const showToast = (
   ) => {
     if (!extraClass) return baseClass;
     if (typeof extraClass === "function") {
-      return (context: Parameters<Extract<ToastOptions["className"], Function>>[0]) =>
+      return (context: any) =>
         cn(baseClass, extraClass(context));
     }
     return cn(baseClass, extraClass);

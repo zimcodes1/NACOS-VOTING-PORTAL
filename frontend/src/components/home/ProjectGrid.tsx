@@ -57,17 +57,31 @@ export const ProjectGrid: React.FC<ProjectGridProps> = ({
   onCategorySelect,
   onResetFilters,
 }) => {
-  const currentCategory = categories.find((c) => c.id === selectedCategoryId);
+  const allCategories: Category[] = [
+    {
+      id: "all",
+      name: "All Projects",
+      slug: "all",
+      description: "Browse all student software and design entries across all categories",
+      requires_payment: false,
+      fee_amount: 0,
+      project_count: projects.length,
+      icon_name: "Grid",
+    },
+    ...(categories || []),
+  ];
+
+  const currentCategory = allCategories.find((c) => String(c.id) === String(selectedCategoryId));
   const activeCategoryName = currentCategory ? currentCategory.name : "All Projects";
 
   return (
     <div className="space-y-6">
       {/* Top Categories Tabs Navigation */}
-      {categories && categories.length > 0 && (
+      {allCategories.length > 0 && (
         <div className="w-full border-b border-border pb-4">
           <div className="flex w-full overflow-x-scroll max-sm:flex-wrap items-center gap-2 no-scrollbar py-1 scroll-smooth">
-            {categories.map((cat) => {
-              const isSelected = selectedCategoryId === cat.id;
+            {allCategories.map((cat) => {
+              const isSelected = String(selectedCategoryId) === String(cat.id);
               return (
                 <button
                   key={cat.id}

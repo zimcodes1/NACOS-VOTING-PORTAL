@@ -1,23 +1,43 @@
 import React, { useState, useMemo, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { DashboardPage } from "../../pages/home/DashboardPage";
 import type { Project, Category, ExhibitionTrack, VoterState } from "../../utils/dataTypes";
-import { DUMMY_PROJECTS, INITIAL_VOTER_STATE } from "../../constants/dummy";
-import { EXHIBITION_CATEGORIES } from "../../constants/data";
+import { INITIAL_VOTER_STATE } from "../../constants/dummy";
+import { fetchCategories, fetchProjects, castVote } from "../../api/dashboardAPI";
+import Preloader from "../../components/ui/Preloader";
 
 const VOTER_STORAGE_KEY = "nacos_voter_state_v1";
+const MATRIC_REGEX = /^(?:FT\d{2}[A-Z]{3,4}\d{3,5}|[A-Z]{2,5}\/\d{4}\/\d{3,5}|[A-Z0-9]{7,15})$/i;
 
 export const DashboardContainer: React.FC = () => {
-    // State for projects & categories (ready to be replaced with React Query / Axios API calls)
-    const [projects, setProjects] = useState<Project[]>(DUMMY_PROJECTS);
-    const [categories] = useState<Category[]>(EXHIBITION_CATEGORIES);
-    const [isLoading, setIsLoading] = useState<boolean>(false);
+    const queryClient = useQueryClient();
+
+    // Track preloader animation completion (strictly once on initial mount)
+    const [isPreloaderComplete, setIsPreloaderComplete] = useState(false);
+
     // Filtering State
     const [searchQuery, setSearchQuery] = useState<string>("");
     const [selectedCategory, setSelectedCategory] = useState<string>("all");
     const [selectedTrack, setSelectedTrack] = useState<ExhibitionTrack>("all");
     const [sortBy, setSortBy] = useState<"popular" | "newest" | "title">("popular");
 
-    // Voter Authentication & Status State (Persisted in localStorage for client UX)
+    // TanStack Queries for categories and projects
+    const { data: categories = [] } = useQuery<Category[]>({
+        queryKey: ["categories"],
+        queryFn: fetchCategories,
+    });
+
+    const { data: projects = [], isLoading: isProjectsLoading } = useQuery<Project[]>({
+        queryKey: ["projects", selectedCategory, selectedTrack, searchQuery],
+        queryFn: () =>
+            fetchProjects({
+                category: selectedCategory !== "all" ? selectedCategory : undefined,
+                search: searchQuery.trim() || undefined,
+                track: selectedTrack !== "all" ? selectedTrack : undefined,
+            }),
+    });
+
+    // Voter Authentication & Status State (Persisted in localStorage)
     const [voterState, setVoterState] = useState<VoterState>(() => {
         try {
             const saved = localStorage.getItem(VOTER_STORAGE_KEY);
@@ -28,7 +48,6 @@ export const DashboardContainer: React.FC = () => {
         return INITIAL_VOTER_STATE;
     });
 
-    // Sync voterState with localStorage
     useEffect(() => {
         try {
             localStorage.setItem(VOTER_STORAGE_KEY, JSON.stringify(voterState));
@@ -37,12 +56,9 @@ export const DashboardContainer: React.FC = () => {
         }
     }, [voterState]);
 
-    // Validation function for NSUK Matriculation Number format (e.g. CSC/2021/042, NAS/2022/101)
     const handleVerifyMatric = (matricNumber: string): boolean => {
         const clean = matricNumber.trim().toUpperCase();
-        // Regex allows typical university matric formats e.g. ABC/202X/123 or similar alphanumeric patterns
-        const matricRegex = /^[A-Z]{2,5}\/\d{4}\/\d{3,5}$/i;
-        const isValid = clean.length >= 7; // flexible validation for dev demo
+        const isValid = MATRIC_REGEX.test(clean);
 
         if (isValid) {
             setVoterState((prev) => ({
@@ -63,31 +79,47 @@ export const DashboardContainer: React.FC = () => {
         });
     };
 
-    // Voting action handler (Wired for future POST /api/votes/ call)
+    // TanStack Mutation for voting
+    const voteMutation = useMutation({
+        mutationFn: ({ project, matricNumber }: { project: Project; matricNumber: string }) =>
+            castVote(project.id, matricNumber),
+        onSuccess: (res, { project }) => {
+            if (!res.success) {
+                if (res.isConflict) {
+                    setVoterState((prev) => ({
+                        ...prev,
+                        votedCategoryIds: Array.from(new Set([...prev.votedCategoryIds, project.category_id])),
+                    }));
+                }
+                return;
+            }
+
+            // Optimistically update query cache with new vote count
+            queryClient.setQueryData(
+                ["projects", selectedCategory, selectedTrack, searchQuery],
+                (old: Project[] = []) =>
+                    old.map((p) =>
+                        p.id === project.id
+                            ? { ...p, vote_count: res.vote_count ?? (p.vote_count + 1) }
+                            : p
+                    )
+            );
+
+            setVoterState((prev) => ({
+                ...prev,
+                votedCategoryIds: Array.from(new Set([...prev.votedCategoryIds, project.category_id])),
+            }));
+        },
+    });
+
     const handleVote = async (targetProject: Project, matricNumber: string): Promise<boolean> => {
         if (voterState.votedCategoryIds.includes(targetProject.category_id)) {
             return false;
         }
 
         try {
-            // Future API Call Integration:
-            // await axios.post('/api/votes/', { matric_number: matricNumber, project_id: targetProject.id });
-
-            // Optimistic UI update
-            setProjects((prevProjects) =>
-                prevProjects.map((p) =>
-                    p.id === targetProject.id
-                        ? { ...p, vote_count: p.vote_count + 1 }
-                        : p
-                )
-            );
-
-            setVoterState((prev) => ({
-                ...prev,
-                votedCategoryIds: [...prev.votedCategoryIds, targetProject.category_id],
-            }));
-
-            return true;
+            const res = await voteMutation.mutateAsync({ project: targetProject, matricNumber });
+            return res.success;
         } catch (error) {
             console.error("Vote API failed", error);
             return false;
@@ -96,32 +128,28 @@ export const DashboardContainer: React.FC = () => {
 
     // Filtered & Sorted Projects derived computation
     const filteredProjects = useMemo(() => {
-        return projects
+        return [...projects]
             .filter((project) => {
-                // Category Filter
-                if (selectedCategory !== "all" && project.category_id !== selectedCategory) {
+                const projCatId = String(project.category_id || project.category?.id || "");
+                const selCatId = String(selectedCategory);
+                if (selCatId !== "all" && projCatId !== selCatId) {
                     return false;
                 }
-
-                // Track Filter
                 if (selectedTrack !== "all" && project.track !== selectedTrack) {
                     return false;
                 }
-
-                // Search Query Filter
                 if (searchQuery.trim()) {
                     const q = searchQuery.toLowerCase();
                     const matchTitle = project.title.toLowerCase().includes(q);
-                    const matchTagline = project.tagline.toLowerCase().includes(q);
-                    const matchCode = project.registration_code.toLowerCase().includes(q);
-                    const matchTeam = project.team_name.toLowerCase().includes(q);
+                    const matchTagline = project.tagline?.toLowerCase().includes(q);
+                    const matchCode = project.registration_code?.toLowerCase().includes(q);
+                    const matchTeam = project.team_name?.toLowerCase().includes(q);
                     const matchTags = project.tags?.some((t) => t.toLowerCase().includes(q));
 
                     if (!matchTitle && !matchTagline && !matchCode && !matchTeam && !matchTags) {
                         return false;
                     }
                 }
-
                 return true;
             })
             .sort((a, b) => {
@@ -132,6 +160,16 @@ export const DashboardContainer: React.FC = () => {
             });
     }, [projects, selectedCategory, selectedTrack, searchQuery, sortBy]);
 
+    // Show preloader strictly ONCE during initial page load
+    if (!isPreloaderComplete) {
+        return (
+            <Preloader
+                minDuration={1800}
+                onComplete={() => setIsPreloaderComplete(true)}
+            />
+        );
+    }
+
     return (
         <DashboardPage
             projects={filteredProjects}
@@ -140,7 +178,7 @@ export const DashboardContainer: React.FC = () => {
             searchQuery={searchQuery}
             selectedTrack={selectedTrack}
             sortBy={sortBy}
-            isLoading={isLoading}
+            isLoading={isProjectsLoading}
             voterState={voterState}
             onSearchChange={setSearchQuery}
             onCategoryChange={setSelectedCategory}
