@@ -47,13 +47,6 @@ export const Navbar: React.FC = () => {
             Projects
           </a>
           <a
-            href="#categories"
-            className="hover:text-primary transition-colors flex items-center gap-1.5"
-          >
-            <Award className="w-4 h-4 text-text-muted" />
-            Categories
-          </a>
-          <a
             href="/results"
             className="hover:text-primary transition-colors flex items-center gap-1.5"
           >

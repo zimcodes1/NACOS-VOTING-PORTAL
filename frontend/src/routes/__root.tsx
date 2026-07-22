@@ -1,5 +1,6 @@
 import { createRootRoute, Outlet } from "@tanstack/react-router";
 import { ToastContainer } from "../components/ui/Toast";
+import NotFoundPage from "../pages/NotFoundPage";
 
 export const Route = createRootRoute({
   component: () => (
@@ -8,4 +9,5 @@ export const Route = createRootRoute({
       <ToastContainer />
     </>
   ),
+  notFoundComponent: NotFoundPage,
 });

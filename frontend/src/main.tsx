@@ -14,7 +14,12 @@ const queryClient = new QueryClient({
   },
 })
 
-const router = createRouter({ routeTree })
+import NotFoundPage from './pages/NotFoundPage'
+
+const router = createRouter({
+  routeTree,
+  defaultNotFoundComponent: NotFoundPage,
+})
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
