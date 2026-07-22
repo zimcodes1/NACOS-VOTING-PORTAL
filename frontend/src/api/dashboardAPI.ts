@@ -144,3 +144,28 @@ export async function fetchJudges(): Promise<Judge[]> {
     return [];
   }
 }
+
+/**
+ * GET /api/stats/
+ * Fetches public landing page statistics (active projects count, verified voters count).
+ */
+export async function fetchPublicStats(): Promise<{
+  active_projects: number;
+  verified_voters: number;
+  total_votes: number;
+}> {
+  try {
+    const data = await apiCall<{
+      active_projects: number;
+      verified_voters: number;
+      total_votes: number;
+    }>({
+      url: "stats/",
+      method: "GET",
+    });
+    return data || { active_projects: 0, verified_voters: 0, total_votes: 0 };
+  } catch (error) {
+    console.warn("fetchPublicStats API call failed:", error);
+    return { active_projects: 0, verified_voters: 0, total_votes: 0 };
+  }
+}

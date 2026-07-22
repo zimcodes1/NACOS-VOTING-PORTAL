@@ -415,3 +415,28 @@ class LiveResultsAPIView(APIView):
             })
 
         return Response({"categories": results}, status=status.HTTP_200_OK)
+
+
+class PublicStatsAPIView(APIView):
+    """
+    GET /api/stats/
+    Returns public landing page telemetry stats:
+    - active_projects: Total count of active exhibition projects
+    - verified_voters: Total count of verified student voters
+    - total_votes: Total votes cast across all categories
+    """
+    def get(self, request):
+        active_projects_count = Project.objects.filter(
+            registration_status=Project.RegistrationStatus.CONFIRMED
+        ).count()
+        if active_projects_count == 0:
+            active_projects_count = Project.objects.count()
+
+        verified_voters_count = Voter.objects.count()
+        total_votes_count = Vote.objects.count()
+
+        return Response({
+            "active_projects": active_projects_count,
+            "verified_voters": verified_voters_count,
+            "total_votes": total_votes_count,
+        }, status=status.HTTP_200_OK)

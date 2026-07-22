@@ -1,9 +1,19 @@
 import React from "react";
 import { motion } from "framer-motion";
+import { useQuery } from "@tanstack/react-query";
 import { Vote, ArrowRight, Sparkles, ShieldCheck, Layers, ArrowDownLeft } from "lucide-react";
 import { Text, Button, Badge } from "../ui";
+import { fetchPublicStats } from "../../api/dashboardAPI";
 
 export const HeroSection: React.FC = () => {
+  const { data: stats } = useQuery({
+    queryKey: ["publicStats"],
+    queryFn: fetchPublicStats,
+  });
+
+  const activeProjectsCount = stats ? stats.active_projects : 0;
+  const verifiedVotersCount = stats ? stats.verified_voters : 0;
+
   return (
     <section className="relative overflow-hidden bg-background py-6 sm:pt-10 border-b border-border min-h-[calc(100vh-5rem)] flex items-center sm:h-screen">
       {/* Background Subtle Ambient Glows */}
@@ -89,12 +99,12 @@ export const HeroSection: React.FC = () => {
               className="pt-6 border-t border-border/75 grid grid-cols-3 gap-6 w-full"
             >
               <div>
-                <Text variant="h3" color="navy" weight="extrabold">24+</Text>
+                <Text variant="h3" color="navy" weight="extrabold">{activeProjectsCount}+</Text>
                 <Text variant="caption" color="muted">Active Projects</Text>
               </div>
 
               <div>
-                <Text variant="h3" color="primary" weight="extrabold">1,500+</Text>
+                <Text variant="h3" color="primary" weight="extrabold">{verifiedVotersCount.toLocaleString()}+</Text>
                 <Text variant="caption" color="muted">Verified Voters</Text>
               </div>
 
@@ -143,12 +153,12 @@ export const HeroSection: React.FC = () => {
                   <motion.div
                     whileHover={{ y: -4, scale: 1.02 }}
                     transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                    className="relative w-full aspect-[4/4.5] rounded-[2.2rem] bg-[#89D5E8] group"
+                    className="relative flex justify-center items-center w-full aspect-[4/4.5] rounded-[2.2rem] bg-[#89D5E8] group"
                   >
                     <img
                       src="/images/student-1.png"
                       alt="NACOS Student Innovator 1"
-                      className="w-full h-full object-cover object-center rounded-[1.9rem] transition-transform duration-300"
+                      className="w-8/10 object-cover object-center rounded-[1.9rem] transition-transform duration-300"
                     />
 
                     {/* Floating Blue Circle Badge with Arrow (Top-Right of Image 1) */}
@@ -176,12 +186,12 @@ export const HeroSection: React.FC = () => {
                   <motion.div
                     whileHover={{ y: -4, scale: 1.02 }}
                     transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                    className="relative w-full aspect-[4/4.8] rounded-[2.2rem] bg-[#B69DF8] group my-auto"
+                    className="relative flex justify-center items-center w-full aspect-[4/4.8] rounded-[2.2rem] bg-[#B69DF8] group my-auto"
                   >
                     <img
                       src="/images/student-2.png"
                       alt="NACOS Student Innovator 2"
-                      className=" h-full object-cover object-center rounded-[1.9rem] transition-transform duration-300"
+                      className=" w-8/10 object-cover object-center rounded-[1.9rem] transition-transform duration-300"
                     />
                   </motion.div>
                 </div>

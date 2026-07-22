@@ -9,7 +9,7 @@ export const Navbar: React.FC = () => {
   return (
     <header className="w-full bg-surface/90 backdrop-blur-md border-b border-border sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
-        
+
         {/* Brand Logo & Title */}
         <Link to="/" className="flex items-center gap-3 group">
           <div className="relative w-11 h-11 rounded-xl bg-surface border border-border flex items-center justify-center p-1.5 shadow-xs transition-transform group-hover:scale-105">
@@ -40,7 +40,7 @@ export const Navbar: React.FC = () => {
         {/* Desktop Quick Links */}
         <nav className="hidden md:flex items-center gap-6 text-sm font-semibold text-text-secondary">
           <a
-            href="#projects-grid"
+            href="/home"
             className="hover:text-primary transition-colors flex items-center gap-1.5"
           >
             <Layers className="w-4 h-4 text-text-muted" />
@@ -54,14 +54,14 @@ export const Navbar: React.FC = () => {
             Categories
           </a>
           <a
-            href="#leaderboard"
+            href="/results"
             className="hover:text-primary transition-colors flex items-center gap-1.5"
           >
             <BarChart3 className="w-4 h-4 text-text-muted" />
             Live Leaderboard
           </a>
           <a
-            href="#judge-login"
+            href="/home/judge-login"
             className="hover:text-navy transition-colors flex items-center gap-1.5 text-navy font-bold"
           >
             <UserCheck className="w-4 h-4 text-navy" />
