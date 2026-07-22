@@ -4,3 +4,5 @@ export * from "./Badge";
 export * from "./Card";
 export * from "./Input";
 export * from "./Modal";
+export * from "./Toast";
+
