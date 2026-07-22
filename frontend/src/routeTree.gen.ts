@@ -11,8 +11,12 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DemoRouteImport } from './routes/demo'
-import { Route as HomeRouteRouteImport } from './routes/home/route'
+import { Route as HomeRouteImport } from './routes/home'
 import { Route as RegisterRouteImport } from './routes/register'
+import { Route as HomeIndexRouteImport } from './routes/home/index'
+import { Route as HomeJudgeRouteImport } from './routes/home/judge'
+import { Route as HomeJudgeLoginRouteImport } from './routes/home/judge-login'
+import { Route as HomeJudgeScoreRouteImport } from './routes/home/judge/score'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -24,7 +28,7 @@ const DemoRoute = DemoRouteImport.update({
   path: '/demo',
   getParentRoute: () => rootRouteImport,
 } as any)
-const HomeRouteRoute = HomeRouteRouteImport.update({
+const HomeRoute = HomeRouteImport.update({
   id: '/home',
   path: '/home',
   getParentRoute: () => rootRouteImport,
@@ -34,38 +38,93 @@ const RegisterRoute = RegisterRouteImport.update({
   path: '/register',
   getParentRoute: () => rootRouteImport,
 } as any)
+const HomeIndexRoute = HomeIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => HomeRoute,
+} as any)
+const HomeJudgeRoute = HomeJudgeRouteImport.update({
+  id: '/judge',
+  path: '/judge',
+  getParentRoute: () => HomeRoute,
+} as any)
+const HomeJudgeLoginRoute = HomeJudgeLoginRouteImport.update({
+  id: '/judge-login',
+  path: '/judge-login',
+  getParentRoute: () => HomeRoute,
+} as any)
+const HomeJudgeScoreRoute = HomeJudgeScoreRouteImport.update({
+  id: '/score',
+  path: '/score',
+  getParentRoute: () => HomeJudgeRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/home': typeof HomeRouteRoute
   '/demo': typeof DemoRoute
+  '/home': typeof HomeRouteWithChildren
   '/register': typeof RegisterRoute
+  '/home/judge': typeof HomeJudgeRouteWithChildren
+  '/home/judge-login': typeof HomeJudgeLoginRoute
+  '/home/': typeof HomeIndexRoute
+  '/home/judge/score': typeof HomeJudgeScoreRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/home': typeof HomeRouteRoute
   '/demo': typeof DemoRoute
   '/register': typeof RegisterRoute
+  '/home/judge': typeof HomeJudgeRouteWithChildren
+  '/home/judge-login': typeof HomeJudgeLoginRoute
+  '/home': typeof HomeIndexRoute
+  '/home/judge/score': typeof HomeJudgeScoreRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/home': typeof HomeRouteRoute
   '/demo': typeof DemoRoute
+  '/home': typeof HomeRouteWithChildren
   '/register': typeof RegisterRoute
+  '/home/judge': typeof HomeJudgeRouteWithChildren
+  '/home/judge-login': typeof HomeJudgeLoginRoute
+  '/home/': typeof HomeIndexRoute
+  '/home/judge/score': typeof HomeJudgeScoreRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/home' | '/demo' | '/register'
+  fullPaths:
+    | '/'
+    | '/demo'
+    | '/home'
+    | '/register'
+    | '/home/judge'
+    | '/home/judge-login'
+    | '/home/'
+    | '/home/judge/score'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/home' | '/demo' | '/register'
-  id: '__root__' | '/' | '/home' | '/demo' | '/register'
+  to:
+    | '/'
+    | '/demo'
+    | '/register'
+    | '/home/judge'
+    | '/home/judge-login'
+    | '/home'
+    | '/home/judge/score'
+  id:
+    | '__root__'
+    | '/'
+    | '/demo'
+    | '/home'
+    | '/register'
+    | '/home/judge'
+    | '/home/judge-login'
+    | '/home/'
+    | '/home/judge/score'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  HomeRouteRoute: typeof HomeRouteRoute
   DemoRoute: typeof DemoRoute
+  HomeRoute: typeof HomeRouteWithChildren
   RegisterRoute: typeof RegisterRoute
 }
 
@@ -89,7 +148,7 @@ declare module '@tanstack/react-router' {
       id: '/home'
       path: '/home'
       fullPath: '/home'
-      preLoaderRoute: typeof HomeRouteRouteImport
+      preLoaderRoute: typeof HomeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/register': {
@@ -99,13 +158,67 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RegisterRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/home/': {
+      id: '/home/'
+      path: '/'
+      fullPath: '/home/'
+      preLoaderRoute: typeof HomeIndexRouteImport
+      parentRoute: typeof HomeRoute
+    }
+    '/home/judge': {
+      id: '/home/judge'
+      path: '/judge'
+      fullPath: '/home/judge'
+      preLoaderRoute: typeof HomeJudgeRouteImport
+      parentRoute: typeof HomeRoute
+    }
+    '/home/judge-login': {
+      id: '/home/judge-login'
+      path: '/judge-login'
+      fullPath: '/home/judge-login'
+      preLoaderRoute: typeof HomeJudgeLoginRouteImport
+      parentRoute: typeof HomeRoute
+    }
+    '/home/judge/score': {
+      id: '/home/judge/score'
+      path: '/score'
+      fullPath: '/home/judge/score'
+      preLoaderRoute: typeof HomeJudgeScoreRouteImport
+      parentRoute: typeof HomeJudgeRoute
+    }
   }
 }
 
+interface HomeJudgeRouteChildren {
+  HomeJudgeScoreRoute: typeof HomeJudgeScoreRoute
+}
+
+const HomeJudgeRouteChildren: HomeJudgeRouteChildren = {
+  HomeJudgeScoreRoute: HomeJudgeScoreRoute,
+}
+
+const HomeJudgeRouteWithChildren = HomeJudgeRoute._addFileChildren(
+  HomeJudgeRouteChildren,
+)
+
+interface HomeRouteChildren {
+  HomeJudgeRoute: typeof HomeJudgeRouteWithChildren
+  HomeJudgeLoginRoute: typeof HomeJudgeLoginRoute
+  HomeIndexRoute: typeof HomeIndexRoute
+}
+
+const HomeRouteChildren: HomeRouteChildren = {
+  HomeJudgeRoute: HomeJudgeRouteWithChildren,
+  HomeJudgeLoginRoute: HomeJudgeLoginRoute,
+  HomeIndexRoute: HomeIndexRoute,
+}
+
+const HomeRouteWithChildren = HomeRoute._addFileChildren(HomeRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  HomeRouteRoute: HomeRouteRoute,
   DemoRoute: DemoRoute,
+  HomeRoute: HomeRouteWithChildren,
   RegisterRoute: RegisterRoute,
 }
 export const routeTree = rootRouteImport

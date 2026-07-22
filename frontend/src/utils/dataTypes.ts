@@ -101,3 +101,42 @@ export interface Judge {
   bio: string;
   image_url: string;
 }
+
+export interface ScoreCriterion {
+  id: string;
+  name: string;
+  max_score: number;
+  weight: number;
+}
+
+export interface JudgeScore {
+  id?: string;
+  project_id: string;
+  criterion_id: string;
+  criterion_name?: string;
+  max_score?: number;
+  value: number;
+  submitted: boolean;
+}
+
+export type ScoringStatus = "not_scored" | "draft_saved" | "submitted";
+
+export interface JudgeProject extends Project {
+  scoring_status: ScoringStatus;
+  scores: JudgeScore[];
+}
+
+export interface JudgeCategory {
+  id: string;
+  name: string;
+  slug: string;
+  description: string;
+  criteria: ScoreCriterion[];
+  projects: JudgeProject[];
+  all_submitted: boolean;
+}
+
+export interface JudgeDashboardData {
+  judge: Judge;
+  categories: JudgeCategory[];
+}

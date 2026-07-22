@@ -159,12 +159,12 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
             )}
 
             {/* Team & Contact info affordance */}
-            {exhibit && (
+            {(exhibit || isSoftwareTrack || project.team_name) && (
               <div className="pt-2 border-t border-border/60 space-y-2">
                 <div className="flex items-center justify-between text-xs text-text-secondary">
                   <span className="flex items-center gap-1.5 font-semibold text-navy">
                     <Users className="w-3.5 h-3.5 text-primary" />
-                    {project.team_name}
+                    <span>{project.team_name || project.contact_name || "Team Entry"}</span>
                   </span>
 
                   {project.show_contact_publicly ? (

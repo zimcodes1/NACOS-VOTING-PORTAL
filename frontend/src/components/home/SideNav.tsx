@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import { useRouterState } from "@tanstack/react-router";
 import {
   LayoutGrid,
   Trophy,
@@ -9,8 +10,13 @@ import {
   ChevronRight,
   PanelLeftClose,
   PanelLeftOpen,
+  ShieldAlert,
+  LogOut,
+  User,
 } from "lucide-react";
 import { cn } from "../../utils/cn";
+import { judgeAuthStore } from "../../utils/judgeAuthStore";
+import { logoutJudge } from "../../api/judgingAPI";
 
 export interface SideNavProps {
   isOpenMobile?: boolean;
@@ -37,12 +43,17 @@ export const SideNav: React.FC<SideNavProps> = ({
     }
   };
 
+  const routerState = useRouterState();
+  const currentPath = routerState.location.pathname;
+
+  const isLoggedIn = judgeAuthStore.isLoggedIn();
+  const judge = judgeAuthStore.getJudge();
+
   const navLinks = [
     {
       href: "/home",
       label: "Project Discovery",
       icon: LayoutGrid,
-      active: true,
     },
     {
       href: "/dashboard",
@@ -61,6 +72,12 @@ export const SideNav: React.FC<SideNavProps> = ({
       href: "/rules",
       label: "Exhibition Rules",
       icon: FileText,
+    },
+    {
+      href: "/home/judge",
+      label: "Judge Dashboard",
+      icon: ShieldAlert,
+      iconColor: "text-amber-600",
     },
   ];
 
@@ -131,6 +148,10 @@ export const SideNav: React.FC<SideNavProps> = ({
         )}
         {navLinks.map((link) => {
           const Icon = link.icon;
+          const isActive = link.href === "/home"
+            ? (currentPath === "/home" || currentPath === "/home/")
+            : (currentPath === link.href || currentPath.startsWith(link.href + "/"));
+
           return (
             <a
               key={link.href}
@@ -140,7 +161,7 @@ export const SideNav: React.FC<SideNavProps> = ({
               className={cn(
                 "flex items-center rounded-xl text-sm font-semibold transition-all group cursor-pointer",
                 collapsed ? "justify-center p-3" : "justify-between px-3 py-2.5",
-                link.active
+                isActive
                   ? "text-primary bg-primary-light/50 border border-primary/20"
                   : "text-text-secondary hover:text-navy hover:bg-background"
               )}
@@ -150,7 +171,7 @@ export const SideNav: React.FC<SideNavProps> = ({
                   className={cn(
                     "w-4 h-4 shrink-0",
                     link.iconColor,
-                    link.active && "text-primary"
+                    isActive && "text-primary"
                   )}
                 />
                 {!collapsed && <span className="truncate">{link.label}</span>}
@@ -162,13 +183,52 @@ export const SideNav: React.FC<SideNavProps> = ({
                       {link.badge}
                     </span>
                   )}
-                  {link.active && <ChevronRight className="w-4 h-4 text-primary/70" />}
+                  {isActive && <ChevronRight className="w-4 h-4 text-primary/70" />}
                 </div>
               )}
             </a>
           );
         })}
       </div>
+      {/* User Section (at the bottom) */}
+      {isLoggedIn && judge && (
+        <div className={cn("pt-4 border-t border-border/80 flex flex-col gap-3", collapsed ? "items-center" : "")}>
+          <div className={cn("flex items-center gap-2.5 min-w-0", collapsed && "justify-center")}>
+            <div className="w-8 h-8 rounded-full overflow-hidden border border-primary/20 bg-background flex items-center justify-center shrink-0">
+              {judge.image_url ? (
+                <img src={judge.image_url} alt={judge.name} className="w-full h-full object-cover" />
+              ) : (
+                <User className="w-4 h-4 text-text-muted" />
+              )}
+            </div>
+            {!collapsed && (
+              <div className="truncate min-w-0">
+                <div className="text-xs font-black text-navy truncate leading-none">
+                  {judge.name || "Judge"}
+                </div>
+                <div className="text-[10px] text-primary font-bold truncate mt-0.5 leading-none">
+                  {judge.title || "Panelist"}
+                </div>
+              </div>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={async () => {
+              await logoutJudge();
+              judgeAuthStore.clear();
+              window.location.href = "/home/judge-login";
+            }}
+            className={cn(
+              "flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-red-600 hover:text-red-700 hover:bg-red-500/10 transition-all cursor-pointer w-full text-left",
+              collapsed && "justify-center px-0"
+            )}
+          >
+            <LogOut className="w-4 h-4 shrink-0" />
+            {!collapsed && <span>Logout</span>}
+          </button>
+        </div>
+      )}
     </div>
   );
 
