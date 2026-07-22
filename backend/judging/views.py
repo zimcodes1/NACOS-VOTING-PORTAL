@@ -246,3 +246,72 @@ class SubmitCategoryScoresAPIView(APIView):
             "message": "Category evaluation submitted successfully.",
             "updated_count": updated_count
         }, status=status.HTTP_200_OK)
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+class JudgedResultsAPIView(APIView):
+    """
+    POST /api/results/judged/
+    Accepts { "code": "evolve" }.
+    Calculates aggregate criteria scores across judges for Software Track entries.
+    Returns winner (#1 rank) and runner-up standings (#2 to #5).
+    """
+    authentication_classes = []
+    permission_classes = []
+
+    def post(self, request):
+        code = (request.data.get('code') or '').strip()
+
+        if code.lower() != 'evolve':
+            return Response({
+                "unlocked": False,
+                "error": "Invalid unlock code. Please enter the correct code to reveal Software Track results."
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        software_categories = Category.objects.filter(track='software')
+        category_standings = []
+
+        for cat in software_categories:
+            projects = Project.objects.filter(category=cat)
+            project_rankings = []
+
+            for proj in projects:
+                scores = Score.objects.filter(project=proj, submitted=True)
+                total_score = sum(s.value for s in scores)
+                judge_count = scores.values('judge').distinct().count()
+                avg_score = (total_score / judge_count) if judge_count > 0 else total_score
+
+                project_rankings.append({
+                    "id": str(proj.id),
+                    "registration_code": proj.registration_code,
+                    "title": proj.title,
+                    "tagline": proj.tagline,
+                    "team_name": proj.team_name or proj.contact_name or "Team Entry",
+                    "thumbnail_url": proj.thumbnail_url,
+                    "live_preview_url": proj.live_preview_url,
+                    "total_score": total_score,
+                    "average_score": round(avg_score, 1),
+                    "judges_evaluated": judge_count,
+                })
+
+            project_rankings.sort(key=lambda x: x['total_score'], reverse=True)
+
+            for idx, item in enumerate(project_rankings):
+                item['rank'] = idx + 1
+
+            winner = project_rankings[0] if project_rankings else None
+            remaining_rankings = project_rankings[1:5] if len(project_rankings) > 1 else []
+
+            category_standings.append({
+                "category_id": str(cat.id),
+                "category_name": cat.name,
+                "winner": winner,
+                "rankings": remaining_rankings,
+                "all_rankings": project_rankings,
+            })
+
+        return Response({
+            "unlocked": True,
+            "message": "Software Track Standings Unlocked",
+            "categories": category_standings
+        }, status=status.HTTP_200_OK)

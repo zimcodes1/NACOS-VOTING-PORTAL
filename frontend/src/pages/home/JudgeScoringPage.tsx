@@ -144,7 +144,7 @@ export default function JudgeScoringPage() {
 
   return (
     <HomeLayout>
-      <div className="max-w-4xl mx-auto px-4 py-8 space-y-8 select-none">
+      <div className="max-w-4xl mx-auto space-y-6 sm:space-y-8 select-none">
         {/* Top Header & Back Button */}
         <div className="flex items-center justify-between gap-4">
           <Button

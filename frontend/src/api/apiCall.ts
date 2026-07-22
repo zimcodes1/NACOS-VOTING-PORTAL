@@ -1,4 +1,5 @@
 import axios from "axios";
+import { toast } from "../components/ui/Toast";
 
 // Helper to normalize VITE_API_BASE_URL to include http:// and /api path
 const getNormalizedBaseUrl = (): string => {
@@ -39,6 +40,13 @@ apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     console.warn("API Call Warning:", error.message || error);
+
+    if (error.code === "ECONNABORTED" || error.message?.toLowerCase().includes("timeout")) {
+      toast.error("Timeout Error", {
+        description: "The request took too long to respond (exceeded 10s). Please check your internet connection and try again.",
+      });
+    }
+
     return Promise.reject(error);
   }
 );

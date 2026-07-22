@@ -362,3 +362,56 @@ class ImageUploadAPIView(APIView):
 
         local_url = request.build_absolute_uri(f"{settings.MEDIA_URL}uploads/{filename}")
         return Response({"url": local_url}, status=status.HTTP_201_CREATED)
+
+
+class LiveResultsAPIView(APIView):
+    """
+    GET /api/results/live/
+    Returns live public voting results for categories in 'graphic_design' and 'ai_prompting' tracks.
+    Returns grouped categories with project vote counts, percentages, and assigned color tokens.
+    """
+    def get(self, request):
+        public_categories = Category.objects.filter(track__in=['graphic_design', 'ai_prompting'])
+        results = []
+
+        COLOR_PALETTE = [
+            "#3B82F6", # Blue
+            "#10B981", # Emerald
+            "#F59E0B", # Amber
+            "#8B5CF6", # Violet
+            "#EC4899", # Pink
+            "#06B6D4", # Cyan
+            "#F97316", # Orange
+            "#6366F1", # Indigo
+        ]
+
+        for cat in public_categories:
+            projects = list(Project.objects.filter(category=cat).annotate(vote_count=Count('votes')).order_by('-vote_count'))
+            total_category_votes = sum(p.vote_count for p in projects)
+
+            projects_data = []
+            for idx, p in enumerate(projects):
+                vote_pct = (p.vote_count / total_category_votes * 100) if total_category_votes > 0 else 0
+                color = COLOR_PALETTE[idx % len(COLOR_PALETTE)]
+
+                projects_data.append({
+                    "id": str(p.id),
+                    "registration_code": p.registration_code,
+                    "title": p.title,
+                    "team_name": p.team_name or p.contact_name or "Team Entry",
+                    "thumbnail_url": p.thumbnail_url,
+                    "vote_count": p.vote_count,
+                    "vote_percentage": round(vote_pct, 1),
+                    "color": color,
+                    "rank": idx + 1,
+                })
+
+            results.append({
+                "category_id": str(cat.id),
+                "category_name": cat.name,
+                "track": cat.track,
+                "total_votes": total_category_votes,
+                "projects": projects_data,
+            })
+
+        return Response({"categories": results}, status=status.HTTP_200_OK)

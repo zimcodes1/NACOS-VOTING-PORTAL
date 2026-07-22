@@ -140,3 +140,45 @@ export interface JudgeDashboardData {
   judge: Judge;
   categories: JudgeCategory[];
 }
+
+export interface LiveProjectResult {
+  id: string;
+  registration_code: string;
+  title: string;
+  team_name: string;
+  thumbnail_url: string;
+  vote_count: number;
+  vote_percentage: number;
+  color: string;
+  rank: number;
+}
+
+export interface LiveCategoryResult {
+  category_id: string;
+  category_name: string;
+  track: string;
+  total_votes: number;
+  projects: LiveProjectResult[];
+}
+
+export interface JudgedProjectRanking {
+  id: string;
+  registration_code: string;
+  title: string;
+  tagline?: string;
+  team_name: string;
+  thumbnail_url: string;
+  live_preview_url?: string;
+  total_score: number;
+  average_score: number;
+  judges_evaluated: number;
+  rank: number;
+}
+
+export interface JudgedCategoryResult {
+  category_id: string;
+  category_name: string;
+  winner: JudgedProjectRanking | null;
+  rankings: JudgedProjectRanking[];
+  all_rankings: JudgedProjectRanking[];
+}

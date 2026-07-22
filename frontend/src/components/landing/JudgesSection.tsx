@@ -1,4 +1,3 @@
-import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { fetchJudges } from "../../api/dashboardAPI";
 import type { Judge } from "../../utils/dataTypes";

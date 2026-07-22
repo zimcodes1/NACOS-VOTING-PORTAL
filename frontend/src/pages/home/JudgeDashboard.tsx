@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
@@ -9,9 +9,9 @@ import {
     Users,
     Building2,
     Send,
-    Lock,
     ArrowRight,
     Info,
+    Edit3,
 } from "lucide-react";
 import { Button, Card, Badge } from "../../components/ui";
 import { toast } from "../../components/ui/Toast";
@@ -64,16 +64,13 @@ export default function JudgeDashboard() {
 
     return (
         <HomeLayout>
-            <div className="max-w-7xl mx-auto px-4 py-8 space-y-8 select-none">
+            <div className="space-y-6 sm:space-y-8 select-none">
                 {/* Welcome Greeting Hero Banner */}
                 <motion.div
                     initial={{ opacity: 0, y: 15 }}
                     animate={{ opacity: 1, y: 0 }}
                     className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-navy via-navy to-primary-dark p-6 sm:p-8 text-white shadow-2xl"
                 >
-                    <div className="absolute -right-10 -bottom-10 w-64 h-64 bg-primary/20 rounded-full blur-3xl pointer-events-none" />
-                    <div className="absolute right-20 top-0 w-48 h-48 bg-gold/20 rounded-full blur-2xl pointer-events-none" />
-
                     <div className="relative z-10 max-w-3xl space-y-3">
                         <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 border border-white/20 backdrop-blur-md text-xs font-bold text-gold-light">
                             <Award className="w-3.5 h-3.5" />
@@ -124,7 +121,7 @@ export default function JudgeDashboard() {
                             return (
                                 <section key={category.id} className="space-y-6">
                                     {/* Category Header Bar */}
-                                    <div className="p-5 sm:p-6 rounded-3xl bg-surface border border-border shadow-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                                    <div className="p-5 sm:p-6 rounded-3xl bg-surface border border-border shadow-md flex flex-col items-start sm:items-center justify-between gap-4">
                                         <div className="space-y-1">
                                             <div className="flex items-center gap-2">
                                                 <Building2 className="w-5 h-5 text-primary" />
@@ -135,9 +132,9 @@ export default function JudgeDashboard() {
                                             )}
                                         </div>
 
-                                        <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
-                                            <span className="text-xs font-bold text-navy px-3 py-1.5 rounded-xl bg-background border border-border">
-                                                Progress: <strong className="text-primary font-black">{scoredCount}</strong> / {totalProjects} Scored
+                                        <div className="flex self-start items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
+                                            <span className="text-xs text-center font-bold text-navy px-3 py-2.5 rounded-xl bg-background border border-border">
+                                                <strong className="text-primary font-black">{scoredCount}</strong> / {totalProjects} Scored
                                             </span>
 
                                             {category.all_submitted ? (
@@ -152,9 +149,9 @@ export default function JudgeDashboard() {
                                                     isLoading={submitCategoryMutation.isPending}
                                                     leftIcon={<Send className="w-4 h-4" />}
                                                     onClick={() => submitCategoryMutation.mutate(category.id)}
-                                                    className="font-extrabold"
+                                                    className="font-extrabold py-2.5"
                                                 >
-                                                    Submit All Scores
+                                                    Submit All
                                                 </Button>
                                             )}
                                         </div>
@@ -240,33 +237,53 @@ export default function JudgeDashboard() {
                                                             )}
                                                         </div>
 
-                                                        {/* Action Button */}
+                                                        {/* Action Buttons */}
                                                         <div className="pt-2">
-                                                            <Button
-                                                                variant={project.scoring_status === "submitted" ? "outline" : "primary"}
-                                                                size="sm"
-                                                                fullWidth
-                                                                rightIcon={
-                                                                    project.scoring_status === "submitted" ? (
-                                                                        <Lock className="w-3.5 h-3.5 text-text-muted" />
-                                                                    ) : (
-                                                                        <ArrowRight className="w-3.5 h-3.5" />
-                                                                    )
-                                                                }
-                                                                onClick={() =>
-                                                                    navigate({
-                                                                        to: "/home/judge/score",
-                                                                        search: { projectId: project.id },
-                                                                    })
-                                                                }
-                                                                className="font-extrabold py-2.5"
-                                                            >
-                                                                {project.scoring_status === "submitted"
-                                                                    ? "View Score Submission"
-                                                                    : project.scoring_status === "draft_saved"
-                                                                        ? "Edit Score Draft"
-                                                                        : "Score Project"}
-                                                            </Button>
+                                                            {project.scoring_status !== "not_scored" ? (
+                                                                <div className="flex items-center gap-2">
+                                                                    <Button
+                                                                        variant="outline"
+                                                                        size="sm"
+                                                                        fullWidth
+                                                                        disabled
+                                                                        leftIcon={<CheckCircle2 className="w-4 h-4 text-success" />}
+                                                                        className="font-extrabold py-2.5 opacity-90 cursor-not-allowed bg-success-bg/40 text-success border-success/30"
+                                                                    >
+                                                                        {project.scoring_status === "submitted" ? "Submitted" : "Scored"}
+                                                                    </Button>
+
+                                                                    <button
+                                                                        type="button"
+                                                                        title="Edit Scores"
+                                                                        aria-label="Edit Scores"
+                                                                        onClick={() =>
+                                                                            navigate({
+                                                                                to: "/home/judge/score",
+                                                                                search: { projectId: project.id },
+                                                                            })
+                                                                        }
+                                                                        className="p-2.5 rounded-full border border-primary/30 text-primary hover:bg-primary-light/60 hover:border-primary/60 transition-all cursor-pointer shrink-0 shadow-xs"
+                                                                    >
+                                                                        <Edit3 className="w-4 h-4" />
+                                                                    </button>
+                                                                </div>
+                                                            ) : (
+                                                                <Button
+                                                                    variant="primary"
+                                                                    size="sm"
+                                                                    fullWidth
+                                                                    rightIcon={<ArrowRight className="w-3.5 h-3.5" />}
+                                                                    onClick={() =>
+                                                                        navigate({
+                                                                            to: "/home/judge/score",
+                                                                            search: { projectId: project.id },
+                                                                        })
+                                                                    }
+                                                                    className="font-extrabold py-2.5"
+                                                                >
+                                                                    Score
+                                                                </Button>
+                                                            )}
                                                         </div>
                                                     </div>
                                                 </Card>

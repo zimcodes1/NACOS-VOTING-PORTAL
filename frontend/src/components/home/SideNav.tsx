@@ -56,8 +56,8 @@ export const SideNav: React.FC<SideNavProps> = ({
       icon: LayoutGrid,
     },
     {
-      href: "/dashboard",
-      label: "Live Leaderboard",
+      href: "/results",
+      label: "Results",
       icon: Trophy,
       iconColor: "text-gold",
       badge: "TV",

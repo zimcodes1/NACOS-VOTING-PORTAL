@@ -1,6 +1,5 @@
-import { createFileRoute } from '@tanstack/react-router'
-import JudgeDashboard from '../../pages/home/JudgeDashboard'
+import { createFileRoute, Outlet } from "@tanstack/react-router";
 
-export const Route = createFileRoute('/home/judge')({
-  component: JudgeDashboard,
-})
+export const Route = createFileRoute("/home/judge")({
+  component: () => <Outlet />,
+});

@@ -7,6 +7,7 @@ from .views import (
     JudgeDashboardDataAPIView,
     SaveProjectScoresAPIView,
     SubmitCategoryScoresAPIView,
+    JudgedResultsAPIView,
 )
 
 urlpatterns = [
@@ -17,4 +18,5 @@ urlpatterns = [
     path('judge/dashboard-data/', JudgeDashboardDataAPIView.as_view(), name='judge-dashboard-data'),
     path('judge/save-scores/', SaveProjectScoresAPIView.as_view(), name='judge-save-scores'),
     path('judge/submit-category-scores/', SubmitCategoryScoresAPIView.as_view(), name='judge-submit-category-scores'),
+    path('results/judged/', JudgedResultsAPIView.as_view(), name='results-judged'),
 ]

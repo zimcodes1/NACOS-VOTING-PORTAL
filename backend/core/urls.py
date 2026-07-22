@@ -9,6 +9,7 @@ from .views import (
     LookupProjectAPIView,
     UpdateProjectAPIView,
     ImageUploadAPIView,
+    LiveResultsAPIView,
 )
 
 urlpatterns = [
@@ -21,4 +22,5 @@ urlpatterns = [
     path('register-project/', RegisterProjectAPIView.as_view(), name='register-project'),
     path('lookup-project/', LookupProjectAPIView.as_view(), name='lookup-project'),
     path('upload-image/', ImageUploadAPIView.as_view(), name='upload-image'),
+    path('results/live/', LiveResultsAPIView.as_view(), name='results-live'),
 ]
