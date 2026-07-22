@@ -24,7 +24,7 @@ export const DashboardContainer: React.FC = () => {
     // TanStack Queries for categories and projects
     const { data: categories = [] } = useQuery<Category[]>({
         queryKey: ["categories"],
-        queryFn: fetchCategories,
+        queryFn: () => fetchCategories(),
     });
 
     const { data: projects = [], isLoading: isProjectsLoading } = useQuery<Project[]>({

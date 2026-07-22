@@ -7,6 +7,7 @@ from .views import (
     VoteCreateAPIView,
     RegisterProjectAPIView,
     LookupProjectAPIView,
+    UpdateProjectAPIView,
     ImageUploadAPIView,
 )
 
@@ -14,6 +15,7 @@ urlpatterns = [
     path('categories/', CategoryListAPIView.as_view(), name='category-list'),
     path('projects/', ProjectListAPIView.as_view(), name='project-list'),
     path('projects/<int:pk>/', ProjectDetailAPIView.as_view(), name='project-detail'),
+    path('projects/<int:pk>/update/', UpdateProjectAPIView.as_view(), name='project-update'),
     path('verify-voter/', VerifyVoterAPIView.as_view(), name='verify-voter'),
     path('votes/', VoteCreateAPIView.as_view(), name='vote-create'),
     path('register-project/', RegisterProjectAPIView.as_view(), name='register-project'),

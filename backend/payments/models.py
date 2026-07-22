@@ -7,6 +7,7 @@ class Payment(models.Model):
         PENDING = 'pending', 'Pending'
         SUCCESS = 'success', 'Success'
         FAILED = 'failed', 'Failed'
+        WAIVED = 'waived', 'Waived'
 
     project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='payments')
     paystack_reference = models.CharField(max_length=100, unique=True)

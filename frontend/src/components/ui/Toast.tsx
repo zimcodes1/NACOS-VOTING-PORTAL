@@ -1,12 +1,5 @@
 import React from "react";
-import {
-  toast as reactToastify,
-  ToastContainer as ReactToastifyContainer,
-  type ToastOptions,
-  type Id,
-  type ToastContainerProps,
-} from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
+import { toast as sonnerToast, Toaster as SonnerToaster, type ToasterProps } from "sonner";
 import {
   CheckCircle2,
   AlertCircle,
@@ -40,7 +33,7 @@ export interface ToastProps {
   icon?: React.ReactNode;
 }
 
-export interface CustomToastOptions extends Omit<ToastOptions, "type" | "icon"> {
+export interface CustomToastOptions {
   description?: React.ReactNode;
   action?: {
     label: string;
@@ -48,6 +41,10 @@ export interface CustomToastOptions extends Omit<ToastOptions, "type" | "icon"> 
   };
   variant?: ToastVariant;
   icon?: React.ReactNode;
+  duration?: number;
+  id?: string | number;
+  className?: string;
+  progressClassName?: string;
 }
 
 const variantConfigs: Record<
@@ -57,72 +54,63 @@ const variantConfigs: Record<
     iconBg: string;
     iconColor: string;
     defaultIcon: React.ReactNode;
-    progressClass: string;
     actionClass: string;
   }
 > = {
   success: {
-    containerClass: "bg-white border-emerald-200 shadow-lg shadow-emerald-900/5 text-emerald-950",
-    iconBg: "bg-emerald-100/80 border border-emerald-200",
+    containerClass: "bg-white/95 text-emerald-950 border-emerald-200/80 shadow-xl shadow-emerald-900/10",
+    iconBg: "bg-emerald-50 text-emerald-600 border-emerald-200/60",
     iconColor: "text-emerald-600",
     defaultIcon: <CheckCircle2 className="w-5 h-5" />,
-    progressClass: "!bg-emerald-500",
-    actionClass: "bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border-emerald-200",
+    actionClass: "bg-emerald-100/70 text-emerald-800 hover:bg-emerald-200/80 border-emerald-300/60",
   },
   error: {
-    containerClass: "bg-white border-rose-200 shadow-lg shadow-rose-900/5 text-rose-950",
-    iconBg: "bg-rose-100/80 border border-rose-200",
+    containerClass: "bg-white/95 text-rose-950 border-rose-200/80 shadow-xl shadow-rose-900/10",
+    iconBg: "bg-rose-50 text-rose-600 border-rose-200/60",
     iconColor: "text-rose-600",
     defaultIcon: <AlertCircle className="w-5 h-5" />,
-    progressClass: "!bg-rose-500",
-    actionClass: "bg-rose-50 text-rose-700 hover:bg-rose-100 border-rose-200",
+    actionClass: "bg-rose-100/70 text-rose-800 hover:bg-rose-200/80 border-rose-300/60",
   },
   danger: {
-    containerClass: "bg-white border-rose-200 shadow-lg shadow-rose-900/5 text-rose-950",
-    iconBg: "bg-rose-100/80 border border-rose-200",
+    containerClass: "bg-white/95 text-rose-950 border-rose-200/80 shadow-xl shadow-rose-900/10",
+    iconBg: "bg-rose-50 text-rose-600 border-rose-200/60",
     iconColor: "text-rose-600",
     defaultIcon: <AlertCircle className="w-5 h-5" />,
-    progressClass: "!bg-rose-500",
-    actionClass: "bg-rose-50 text-rose-700 hover:bg-rose-100 border-rose-200",
+    actionClass: "bg-rose-100/70 text-rose-800 hover:bg-rose-200/80 border-rose-300/60",
   },
   warning: {
-    containerClass: "bg-white border-amber-200 shadow-lg shadow-amber-900/5 text-amber-950",
-    iconBg: "bg-amber-100/80 border border-amber-200",
+    containerClass: "bg-white/95 text-amber-950 border-amber-200/80 shadow-xl shadow-amber-900/10",
+    iconBg: "bg-amber-50 text-amber-600 border-amber-200/60",
     iconColor: "text-amber-600",
     defaultIcon: <AlertTriangle className="w-5 h-5" />,
-    progressClass: "!bg-amber-500",
-    actionClass: "bg-amber-50 text-amber-800 hover:bg-amber-100 border-amber-200",
+    actionClass: "bg-amber-100/70 text-amber-900 hover:bg-amber-200/80 border-amber-300/60",
   },
   info: {
-    containerClass: "bg-white border-sky-200 shadow-lg shadow-sky-900/5 text-sky-950",
-    iconBg: "bg-sky-100/80 border border-sky-200",
+    containerClass: "bg-white/95 text-sky-950 border-sky-200/80 shadow-xl shadow-sky-900/10",
+    iconBg: "bg-sky-50 text-sky-600 border-sky-200/60",
     iconColor: "text-sky-600",
     defaultIcon: <Info className="w-5 h-5" />,
-    progressClass: "!bg-sky-500",
-    actionClass: "bg-sky-50 text-sky-800 hover:bg-sky-100 border-sky-200",
+    actionClass: "bg-sky-100/70 text-sky-900 hover:bg-sky-200/80 border-sky-300/60",
   },
   navy: {
-    containerClass: "bg-navy text-white border-navy-light/20 shadow-xl shadow-navy/20",
-    iconBg: "bg-white/10 border border-white/15",
-    iconColor: "text-blue-300",
+    containerClass: "bg-navy text-white border-navy-light/30 shadow-2xl shadow-navy/30",
+    iconBg: "bg-white/10 text-gold-light border-white/15",
+    iconColor: "text-gold-light",
     defaultIcon: <Info className="w-5 h-5" />,
-    progressClass: "!bg-blue-400",
     actionClass: "bg-white/15 text-white hover:bg-white/25 border-white/20",
   },
   primary: {
-    containerClass: "bg-white border-primary/30 shadow-lg shadow-primary/10 text-primary-dark",
-    iconBg: "bg-primary-light border border-primary/20",
+    containerClass: "bg-white/95 text-navy border-primary/30 shadow-xl shadow-primary/10",
+    iconBg: "bg-primary-light text-primary border-primary/20",
     iconColor: "text-primary",
     defaultIcon: <Sparkles className="w-5 h-5" />,
-    progressClass: "!bg-primary",
     actionClass: "bg-primary-light text-primary-dark hover:bg-primary-light/80 border-primary/20",
   },
   gold: {
-    containerClass: "bg-white border-gold/30 shadow-lg shadow-gold/10 text-navy",
-    iconBg: "bg-gold-light border border-gold/30",
+    containerClass: "bg-white/95 text-navy border-gold/40 shadow-xl shadow-gold/15",
+    iconBg: "bg-gold-light text-gold-dark border-gold/30",
     iconColor: "text-gold",
     defaultIcon: <Award className="w-5 h-5" />,
-    progressClass: "!bg-gold",
     actionClass: "bg-gold-light text-gold-dark hover:bg-gold-light/80 border-gold/30",
   },
 };
@@ -140,13 +128,13 @@ export const ToastContent: React.FC<ToastProps> = ({
   return (
     <div
       className={cn(
-        "relative flex items-start gap-3 w-full p-4 rounded-xl border backdrop-blur-md transition-all duration-200",
+        "relative flex items-start gap-3 w-full p-4 rounded-2xl border backdrop-blur-xl transition-all duration-200 select-none",
         config.containerClass
       )}
     >
       <div
         className={cn(
-          "flex items-center justify-center shrink-0 w-9 h-9 rounded-lg p-2",
+          "flex items-center justify-center shrink-0 w-9 h-9 rounded-xl p-2 border shadow-xs",
           config.iconBg,
           config.iconColor
         )}
@@ -154,12 +142,12 @@ export const ToastContent: React.FC<ToastProps> = ({
         {icon || config.defaultIcon}
       </div>
 
-      <div className="flex-1 min-w-0 pt-0.5">
-        <h4 className="text-sm font-semibold leading-tight tracking-tight">
+      <div className="flex-1 min-w-0 pt-0.5 space-y-0.5">
+        <h4 className="text-xs sm:text-sm font-extrabold leading-snug tracking-tight">
           {title}
         </h4>
         {description && (
-          <p className="mt-1 text-xs opacity-80 leading-relaxed break-words">
+          <p className="text-[11px] sm:text-xs opacity-85 leading-relaxed break-words">
             {description}
           </p>
         )}
@@ -170,9 +158,10 @@ export const ToastContent: React.FC<ToastProps> = ({
             onClick={(e) => {
               e.stopPropagation();
               action.onClick();
+              if (onClose) onClose();
             }}
             className={cn(
-              "mt-2.5 inline-flex items-center justify-center px-3 py-1 text-xs font-semibold rounded-lg border transition-colors cursor-pointer",
+              "mt-2 inline-flex items-center justify-center px-3 py-1 text-xs font-bold rounded-lg border transition-colors cursor-pointer",
               config.actionClass
             )}
           >
@@ -188,10 +177,10 @@ export const ToastContent: React.FC<ToastProps> = ({
             e.stopPropagation();
             onClose();
           }}
-          className="shrink-0 p-1 rounded-md opacity-60 hover:opacity-100 hover:bg-black/5 transition-all cursor-pointer -mr-1 -mt-1"
+          className="shrink-0 p-1 rounded-lg opacity-60 hover:opacity-100 hover:bg-black/5 transition-all cursor-pointer -mr-1 -mt-1 text-current"
           aria-label="Close notification"
         >
-          <X className="w-4 h-4" />
+          <X className="w-3.5 h-3.5" />
         </button>
       )}
     </div>
@@ -201,54 +190,30 @@ export const ToastContent: React.FC<ToastProps> = ({
 export const showToast = (
   title: React.ReactNode,
   options?: CustomToastOptions
-): Id => {
+): string | number => {
   const {
     variant = "primary",
     description,
     action,
     icon,
-    className,
-    progressClassName,
-    ...toastifyOptions
+    duration = 4000,
+    id,
   } = options || {};
 
-  const config = variantConfigs[variant] || variantConfigs.primary;
-
-  const resolveClassName = (
-    baseClass: string,
-    extraClass?: ToastOptions["className"]
-  ) => {
-    if (!extraClass) return baseClass;
-    if (typeof extraClass === "function") {
-      return (context: any) =>
-        cn(baseClass, extraClass(context));
-    }
-    return cn(baseClass, extraClass);
-  };
-
-  return reactToastify(
-    ({ closeToast }) => (
+  return sonnerToast.custom(
+    (t) => (
       <ToastContent
         title={title}
         description={description}
         variant={variant}
         action={action}
         icon={icon}
-        onClose={closeToast}
+        onClose={() => sonnerToast.dismiss(t)}
       />
     ),
     {
-      className: resolveClassName(
-        "!bg-transparent !p-0 !shadow-none !mb-3",
-        className
-      ),
-      progressClassName: resolveClassName(
-        config.progressClass,
-        progressClassName
-      ),
-      icon: false,
-      closeButton: false,
-      ...toastifyOptions,
+      id,
+      duration,
     }
   );
 };
@@ -290,27 +255,27 @@ showToast.gold = (
   options?: Omit<CustomToastOptions, "variant">
 ) => showToast(title, { ...options, variant: "gold" });
 
-showToast.dismiss = reactToastify.dismiss;
-showToast.promise = reactToastify.promise;
-showToast.isActive = reactToastify.isActive;
-showToast.update = reactToastify.update;
+showToast.dismiss = (id?: string | number) => sonnerToast.dismiss(id);
+showToast.promise = sonnerToast.promise;
+showToast.isActive = (id: string | number) => sonnerToast.dismiss(id);
+showToast.update = (id: string | number, options?: any) => showToast(options?.title || "", { ...options, id });
 
 export const toast = showToast;
 
-export const ToastContainer: React.FC<ToastContainerProps> = (props) => {
+export const ToastContainer: React.FC<ToasterProps> = (props) => {
   return (
-    <ReactToastifyContainer
+    <SonnerToaster
       position="top-right"
-      autoClose={4000}
-      hideProgressBar={false}
-      newestOnTop
-      closeOnClick={false}
-      rtl={false}
-      pauseOnFocusLoss
-      draggable
-      pauseOnHover
-      closeButton={false}
-      style={{ width: "380px", maxWidth: "90vw" }}
+      toastOptions={{
+        style: {
+          background: "transparent",
+          border: "none",
+          boxShadow: "none",
+          padding: 0,
+          width: "380px",
+          maxWidth: "90vw",
+        },
+      }}
       {...props}
     />
   );

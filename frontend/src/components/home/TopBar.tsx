@@ -1,5 +1,5 @@
 import React from "react";
-import { Search, Sparkles, UserCheck, Menu, X, ShieldCheck, Trophy, Flame } from "lucide-react";
+import { Search, UserCheck, Menu, X, ShieldCheck, Trophy, Flame } from "lucide-react";
 import { Badge, Button } from "../ui";
 import { type VoterState } from "../../utils/dataTypes";
 
@@ -98,14 +98,15 @@ export const TopBar: React.FC<TopBarProps> = ({
             {/* Voter Authentication / Verification Status */}
             {voterState.isVerified && voterState.matricNumber ? (
               <div className="flex items-center gap-2">
-                <Badge
-                  variant="success"
-                  size="md"
-                  icon={<ShieldCheck className="w-3.5 h-3.5" />}
-                  className="hidden sm:inline-flex"
-                >
-                  {voterState.matricNumber}
-                </Badge>
+                <span className="hidden sm:inline-flex">
+                  <Badge
+                    variant="success"
+                    size="md"
+                    icon={<ShieldCheck className="w-3.5 h-3.5" />}
+                  >
+                    {voterState.matricNumber}
+                  </Badge>
+                </span>
                 <Button
                   variant="outline"
                   size="sm"

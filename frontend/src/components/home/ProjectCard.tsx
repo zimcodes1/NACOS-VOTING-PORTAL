@@ -248,30 +248,36 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
                 <span className="text-xs text-text-muted italic">No Link</span>
               )}
 
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-extrabold text-navy">
-                  {project.vote_count}{" "}
-                  <span className="font-normal text-text-muted text-[10px]">votes</span>
+              {isSoftwareTrack ? (
+                <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-extrabold bg-amber-500/10 text-amber-700 border border-amber-500/20">
+                  Judged Category
                 </span>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-extrabold text-navy">
+                    {project.vote_count}{" "}
+                    <span className="font-normal text-text-muted text-[10px]">votes</span>
+                  </span>
 
-                <Button
-                  variant={hasVotedInCategory ? "light" : !isVotingOpen ? "outline" : "primary"}
-                  size="sm"
-                  disabled={isVotingDisabled}
-                  leftIcon={
-                    hasVotedInCategory ? (
-                      <CheckCircle2 className="w-3.5 h-3.5 text-success" />
-                    ) : !isVotingOpen ? (
-                      <Lock className="w-3.5 h-3.5 text-text-muted" />
-                    ) : (
-                      <ThumbsUp className="w-3.5 h-3.5" />
-                    )
-                  }
-                  onClick={() => onVote(project)}
-                >
-                  {hasVotedInCategory ? "Voted" : !isVotingOpen ? "Voting Closed" : "Vote"}
-                </Button>
-              </div>
+                  <Button
+                    variant={hasVotedInCategory ? "light" : !isVotingOpen ? "outline" : "primary"}
+                    size="sm"
+                    disabled={isVotingDisabled}
+                    leftIcon={
+                      hasVotedInCategory ? (
+                        <CheckCircle2 className="w-3.5 h-3.5 text-success" />
+                      ) : !isVotingOpen ? (
+                        <Lock className="w-3.5 h-3.5 text-text-muted" />
+                      ) : (
+                        <ThumbsUp className="w-3.5 h-3.5" />
+                      )
+                    }
+                    onClick={() => onVote(project)}
+                  >
+                    {hasVotedInCategory ? "Voted" : !isVotingOpen ? "Voting Closed" : "Vote"}
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
         </Card>

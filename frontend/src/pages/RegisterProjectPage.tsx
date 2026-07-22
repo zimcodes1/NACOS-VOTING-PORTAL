@@ -1,5 +1,4 @@
-import React, { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Code2,
@@ -13,218 +12,133 @@ import {
   Search,
   Sparkles,
   ShieldCheck,
-  Building2,
   Upload,
   Link as LinkIcon,
   Image as ImageIcon,
   Loader2,
+  Edit,
 } from "lucide-react";
-import { fetchCategories, registerProject, lookupProject, uploadImage } from "../api/dashboardAPI";
 import type { Category, ExhibitionTrack, Project } from "../utils/dataTypes";
+import Topbar from "../components/register/RegisterTopbar";
 import { Button, Input, Card, Badge } from "../components/ui";
-import { toast } from "../components/ui/Toast";
 
-type Step = 1 | 2 | 3 | 4;
+export interface RegisterProjectPageProps {
+  mode: "register" | "lookup";
+  setMode: (mode: "register" | "lookup") => void;
+  currentStep: 1 | 2 | 3 | 4;
+  track: ExhibitionTrack;
+  setTrack: (track: ExhibitionTrack) => void;
+  categoryId: string;
+  setCategoryId: (id: string) => void;
+  title: string;
+  setTitle: (title: string) => void;
+  tagline: string;
+  setTagline: (tagline: string) => void;
+  description: string;
+  setDescription: (desc: string) => void;
+  imageInputMode: "upload" | "url";
+  setImageInputMode: (mode: "upload" | "url") => void;
+  thumbnailUrl: string;
+  setThumbnailUrl: (url: string) => void;
+  isUploadingImage: boolean;
+  livePreviewUrl: string;
+  setLivePreviewUrl: (url: string) => void;
+  tagsInput: string;
+  setTagsInput: (tags: string) => void;
+  teamName: string;
+  setTeamName: (name: string) => void;
+  contactName: string;
+  setContactName: (name: string) => void;
+  contactEmail: string;
+  setContactEmail: (email: string) => void;
+  contactPhone: string;
+  setContactPhone: (phone: string) => void;
+  showContactPublicly: boolean;
+  setShowContactPublicly: (show: boolean) => void;
+  isSubmitting: boolean;
+  registeredProject: Project | null;
+  hasCopiedCode: boolean;
+  lookupCode: string;
+  setLookupCode: (code: string) => void;
+  lookupEmail: string;
+  setLookupEmail: (email: string) => void;
+  isLookingUp: boolean;
+  lookedUpProject: Project | null;
+  categories: Category[];
+  isCategoriesLoading: boolean;
+  selectedCategory?: Category;
+  onFileUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onNextStep: () => void;
+  onPrevStep: () => void;
+  onSubmitRegistration: (e: React.FormEvent) => void;
+  onCopyCode: () => void;
+  onPerformLookup: (e: React.FormEvent) => void;
+  onTriggerEdit: () => void;
+  isEditing: boolean;
+  onCancelEdit: () => void;
+  wasEditing: boolean;
+}
 
-export const RegisterProjectPage: React.FC = () => {
-  // Mode: "register" | "lookup"
-  const [mode, setMode] = useState<"register" | "lookup">("register");
-
-  // Step state for multi-step onboarding flow
-  const [currentStep, setCurrentStep] = useState<Step>(1);
-
-  // Form State
-  const [track, setTrack] = useState<ExhibitionTrack>("software");
-  const [categoryId, setCategoryId] = useState<string>("");
-  const [title, setTitle] = useState<string>("");
-  const [tagline, setTagline] = useState<string>("");
-  const [description, setDescription] = useState<string>("");
-
-  // Image Upload / URL State
-  const [imageInputMode, setImageInputMode] = useState<"upload" | "url">("upload");
-  const [thumbnailUrl, setThumbnailUrl] = useState<string>("");
-  const [isUploadingImage, setIsUploadingImage] = useState<boolean>(false);
-
-  const [livePreviewUrl, setLivePreviewUrl] = useState<string>("");
-  const [tagsInput, setTagsInput] = useState<string>("");
-
-  // Team & Contact State
-  const [teamName, setTeamName] = useState<string>("");
-  const [contactName, setContactName] = useState<string>("");
-  const [contactEmail, setContactEmail] = useState<string>("");
-  const [contactPhone, setContactPhone] = useState<string>("");
-  const [showContactPublicly, setShowContactPublicly] = useState<boolean>(true);
-
-  // Submission / Result State
-  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-  const [registeredProject, setRegisteredProject] = useState<Project | null>(null);
-  const [hasCopiedCode, setHasCopiedCode] = useState<boolean>(false);
-
-  // Lookup Form State
-  const [lookupCode, setLookupCode] = useState<string>("");
-  const [lookupEmail, setLookupEmail] = useState<string>("");
-  const [isLookingUp, setIsLookingUp] = useState<boolean>(false);
-  const [lookedUpProject, setLookedUpProject] = useState<Project | null>(null);
-
-  // Fetch categories belonging to the selected track from backend
-  const { data: categories = [], isLoading: isCategoriesLoading } = useQuery<Category[]>({
-    queryKey: ["categories", track],
-    queryFn: () => fetchCategories(track),
-  });
-
-  const selectedCategory = categories.find((c) => String(c.id) === String(categoryId));
-
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (file.size > 10 * 1024 * 1024) {
-      toast.warning("Image size must be smaller than 10MB.");
-      return;
-    }
-
-    setIsUploadingImage(true);
-    const res = await uploadImage(file);
-    setIsUploadingImage(false);
-
-    if (res.success && res.url) {
-      setThumbnailUrl(res.url);
-      toast.success("Image uploaded successfully!");
-    } else {
-      toast.error(res.error || "Image upload failed.");
-    }
-  };
-
-  const handleNextStep = () => {
-    if (currentStep === 1) {
-      if (!categoryId) {
-        toast.warning("Please select a project category to continue.");
-        return;
-      }
-    } else if (currentStep === 2) {
-      if (!title.trim() || !description.trim()) {
-        toast.warning("Please enter a title and description for your project.");
-        return;
-      }
-      if (!thumbnailUrl.trim()) {
-        toast.warning("Please upload an image or provide a thumbnail URL.");
-        return;
-      }
-    } else if (currentStep === 3) {
-      if (!teamName.trim() || !contactName.trim() || !contactEmail.trim()) {
-        toast.warning("Please fill in your team and contact information.");
-        return;
-      }
-    }
-    setCurrentStep((prev) => Math.min(prev + 1, 4) as Step);
-  };
-
-  const handlePrevStep = () => {
-    setCurrentStep((prev) => Math.max(prev - 1, 1) as Step);
-  };
-
-  const handleSubmitRegistration = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-
-    const tags = tagsInput
-      .split(",")
-      .map((t) => t.trim())
-      .filter(Boolean);
-
-    const payload = {
-      category_id: categoryId,
-      track,
-      title: title.trim(),
-      tagline: tagline.trim(),
-      description: description.trim(),
-      thumbnail_url: thumbnailUrl.trim(),
-      live_preview_url: livePreviewUrl.trim(),
-      team_name: teamName.trim(),
-      contact_name: contactName.trim(),
-      contact_email: contactEmail.trim(),
-      contact_phone: contactPhone.trim(),
-      show_contact_publicly: showContactPublicly,
-      tags,
-    };
-
-    const res = await registerProject(payload);
-    setIsSubmitting(false);
-
-    if (res.success && res.data) {
-      setRegisteredProject(res.data);
-      toast.success("Project registration submitted successfully!");
-    } else {
-      toast.error(res.error || "Failed to submit project registration.");
-    }
-  };
-
-  const handleCopyCode = () => {
-    if (!registeredProject?.registration_code) return;
-    navigator.clipboard.writeText(registeredProject.registration_code);
-    setHasCopiedCode(true);
-    toast.success("Registration code copied to clipboard!");
-    setTimeout(() => setHasCopiedCode(false), 3000);
-  };
-
-  const handlePerformLookup = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!lookupCode.trim() || !lookupEmail.trim()) {
-      toast.warning("Please enter both your Registration Code and Contact Email.");
-      return;
-    }
-    setIsLookingUp(true);
-    const res = await lookupProject(lookupCode.trim(), lookupEmail.trim());
-    setIsLookingUp(false);
-
-    if (res.success && res.data) {
-      setLookedUpProject(res.data);
-      toast.success("Project status retrieved!");
-    } else {
-      setLookedUpProject(null);
-      toast.error(res.error || "No matching project found.");
-    }
-  };
-
+export const RegisterProjectPage: React.FC<RegisterProjectPageProps> = ({
+  mode,
+  setMode,
+  currentStep,
+  track,
+  setTrack,
+  categoryId,
+  setCategoryId,
+  title,
+  setTitle,
+  tagline,
+  setTagline,
+  description,
+  setDescription,
+  imageInputMode,
+  setImageInputMode,
+  thumbnailUrl,
+  setThumbnailUrl,
+  isUploadingImage,
+  livePreviewUrl,
+  setLivePreviewUrl,
+  tagsInput,
+  setTagsInput,
+  teamName,
+  setTeamName,
+  contactName,
+  setContactName,
+  contactEmail,
+  setContactEmail,
+  contactPhone,
+  setContactPhone,
+  showContactPublicly,
+  setShowContactPublicly,
+  isSubmitting,
+  registeredProject,
+  hasCopiedCode,
+  lookupCode,
+  setLookupCode,
+  lookupEmail,
+  setLookupEmail,
+  isLookingUp,
+  lookedUpProject,
+  categories,
+  isCategoriesLoading,
+  selectedCategory,
+  onFileUpload,
+  onNextStep,
+  onPrevStep,
+  onSubmitRegistration,
+  onCopyCode,
+  onPerformLookup,
+  onTriggerEdit,
+  isEditing,
+  onCancelEdit,
+  wasEditing,
+}) => {
   return (
     <div className="min-h-screen bg-background text-text-primary flex flex-col justify-between selection:bg-primary/20 selection:text-primary">
       {/* Header Bar */}
-      <header className="w-full border-b border-border/80 bg-surface/80 backdrop-blur-md sticky top-0 z-30">
-        <div className="max-w-6xl mx-auto px-4 py-3.5 flex items-center justify-between">
-          <a href="/" className="flex items-center gap-3 group">
-            <div className="w-9 h-9 rounded-xl bg-navy flex items-center justify-center text-white shadow-md shadow-navy/20 group-hover:scale-105 transition-transform">
-              <Building2 className="w-5 h-5 text-gold-light" />
-            </div>
-            <div>
-              <div className="text-sm font-extrabold text-navy leading-none tracking-tight">
-                NACOS EXHIBITION
-              </div>
-              <div className="text-[10px] font-bold text-primary tracking-widest uppercase mt-0.5">
-                Entrant Portal
-              </div>
-            </div>
-          </a>
-
-          <div className="flex items-center gap-3">
-            <Button
-              variant={mode === "register" ? "primary" : "ghost"}
-              size="sm"
-              onClick={() => setMode("register")}
-            >
-              Register Entry
-            </Button>
-            <Button
-              variant={mode === "lookup" ? "primary" : "ghost"}
-              size="sm"
-              leftIcon={<Search className="w-3.5 h-3.5" />}
-              onClick={() => setMode("lookup")}
-            >
-              Check Status
-            </Button>
-          </div>
-        </div>
-      </header>
-
+      <Topbar mode={mode} setMode={setMode} />
       {/* Main Content Area */}
       <main className="flex-1 max-w-5xl w-full mx-auto px-4 py-8 flex flex-col justify-center">
         {mode === "lookup" ? (
@@ -243,7 +157,7 @@ export const RegisterProjectPage: React.FC = () => {
                 </p>
               </div>
 
-              <form onSubmit={handlePerformLookup} className="space-y-4 pt-2">
+              <form onSubmit={onPerformLookup} className="space-y-4 pt-2">
                 <Input
                   label="Registration Code"
                   placeholder="e.g. SOFT_001, GRAP_001, AI_001"
@@ -305,6 +219,16 @@ export const RegisterProjectPage: React.FC = () => {
                   <p className="text-xs text-text-secondary">
                     Team: <strong className="text-navy">{lookedUpProject.team_name}</strong>
                   </p>
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    fullWidth
+                    leftIcon={<Edit className="w-4 h-4" />}
+                    onClick={onTriggerEdit}
+                    className="mt-3 py-3 bg-navy text-white hover:bg-navy/90"
+                  >
+                    Edit Entry
+                  </Button>
                 </motion.div>
               )}
             </Card>
@@ -322,10 +246,10 @@ export const RegisterProjectPage: React.FC = () => {
                   <CheckCircle2 className="w-8 h-8" />
                 </div>
                 <h2 className="text-2xl sm:text-3xl font-black text-navy tracking-tight">
-                  Registration Received!
+                  {wasEditing ? "Project Updated!" : "Registration Received!"}
                 </h2>
                 <p className="text-xs sm:text-sm text-text-secondary max-w-md mx-auto">
-                  Your project entry <strong className="text-navy">{registeredProject.title}</strong> has been submitted.
+                  Your project entry <strong className="text-navy">{registeredProject.title}</strong> has been {wasEditing ? "updated" : "submitted"}.
                 </p>
               </div>
 
@@ -341,7 +265,7 @@ export const RegisterProjectPage: React.FC = () => {
                   variant="gold"
                   size="sm"
                   leftIcon={hasCopiedCode ? <CheckCircle2 className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                  onClick={handleCopyCode}
+                  onClick={onCopyCode}
                   className="mx-auto"
                 >
                   {hasCopiedCode ? "Copied!" : "Copy Registration Code"}
@@ -377,6 +301,7 @@ export const RegisterProjectPage: React.FC = () => {
                   size="md"
                   fullWidth
                   onClick={() => (window.location.href = "/")}
+                  className="py-3"
                 >
                   Go to Discovery Grid
                 </Button>
@@ -386,6 +311,26 @@ export const RegisterProjectPage: React.FC = () => {
         ) : (
           /* Multi-Step Onboarding Registration Flow */
           <div className="space-y-6">
+            {isEditing && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="max-w-2xl mx-auto w-full p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between text-xs"
+              >
+                <div className="flex items-center gap-2 font-extrabold text-navy">
+                  <Sparkles className="w-4 h-4 text-primary animate-pulse" />
+                  <span>Editing Entry for: <code className="font-mono text-primary bg-background px-2 py-1 rounded-lg border border-border">{lookedUpProject?.registration_code}</code></span>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={onCancelEdit}
+                  className="text-red-600 hover:text-red-700 font-extrabold px-3 py-1.5"
+                >
+                  Cancel Edit
+                </Button>
+              </motion.div>
+            )}
             {/* Top Onboarding Header & Progress Indicator Bar */}
             <div className="max-w-2xl mx-auto w-full space-y-4">
               <div className="flex items-center justify-between text-xs font-bold text-navy">
@@ -395,10 +340,10 @@ export const RegisterProjectPage: React.FC = () => {
                   {currentStep === 1
                     ? "Track & Category"
                     : currentStep === 2
-                    ? "Project Details & Media"
-                    : currentStep === 3
-                    ? "Team & Contact"
-                    : "Review & Submit"}
+                      ? "Project Details & Media"
+                      : currentStep === 3
+                        ? "Team & Contact"
+                        : "Review & Submit"}
                 </span>
                 <span className="text-text-muted font-mono">
                   {Math.round((currentStep / 4) * 100)}% Completed
@@ -408,7 +353,7 @@ export const RegisterProjectPage: React.FC = () => {
               {/* Progress Bar Container */}
               <div className="w-full h-2 rounded-full bg-border overflow-hidden">
                 <motion.div
-                  className="h-full bg-gradient-to-r from-primary via-navy to-gold"
+                  className="h-full bg-gradient-to-r from-primary to-navy"
                   initial={{ width: "25%" }}
                   animate={{ width: `${(currentStep / 4) * 100}%` }}
                   transition={{ duration: 0.3 }}
@@ -464,13 +409,12 @@ export const RegisterProjectPage: React.FC = () => {
                           type="button"
                           onClick={() => {
                             setTrack(item.id as ExhibitionTrack);
-                            setCategoryId(""); // Reset selected category when switching track
+                            setCategoryId("");
                           }}
-                          className={`p-4 rounded-2xl border text-left transition-all cursor-pointer space-y-2 ${
-                            track === item.id
-                              ? "bg-navy text-white border-navy shadow-lg shadow-navy/20"
-                              : "bg-background text-text-secondary border-border hover:border-navy/40"
-                          }`}
+                          className={`p-4 rounded-2xl border text-left transition-all cursor-pointer space-y-2 ${track === item.id
+                            ? "bg-navy text-white border-navy shadow-lg shadow-navy/20"
+                            : "bg-background text-text-secondary border-border hover:border-navy/40"
+                            }`}
                         >
                           <div className="p-2 rounded-xl bg-white/10 w-fit">
                             {item.icon}
@@ -567,11 +511,10 @@ export const RegisterProjectPage: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => setImageInputMode("upload")}
-                            className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-colors cursor-pointer flex items-center gap-1 ${
-                              imageInputMode === "upload"
-                                ? "bg-navy text-white shadow-xs"
-                                : "text-text-muted hover:text-navy"
-                            }`}
+                            className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-colors cursor-pointer flex items-center gap-1 ${imageInputMode === "upload"
+                              ? "bg-navy text-white shadow-xs"
+                              : "text-text-muted hover:text-navy"
+                              }`}
                           >
                             <Upload className="w-3 h-3" />
                             Upload File
@@ -579,11 +522,10 @@ export const RegisterProjectPage: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => setImageInputMode("url")}
-                            className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-colors cursor-pointer flex items-center gap-1 ${
-                              imageInputMode === "url"
-                                ? "bg-navy text-white shadow-xs"
-                                : "text-text-muted hover:text-navy"
-                            }`}
+                            className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-colors cursor-pointer flex items-center gap-1 ${imageInputMode === "url"
+                              ? "bg-navy text-white shadow-xs"
+                              : "text-text-muted hover:text-navy"
+                              }`}
                           >
                             <LinkIcon className="w-3 h-3" />
                             Image URL
@@ -596,7 +538,7 @@ export const RegisterProjectPage: React.FC = () => {
                           <input
                             type="file"
                             accept="image/*"
-                            onChange={handleFileUpload}
+                            onChange={onFileUpload}
                             disabled={isUploadingImage}
                             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                           />
@@ -774,7 +716,7 @@ export const RegisterProjectPage: React.FC = () => {
                   <Button
                     variant="ghost"
                     size="md"
-                    onClick={handlePrevStep}
+                    onClick={onPrevStep}
                     leftIcon={<ArrowLeft className="w-4 h-4" />}
                   >
                     Back
@@ -787,7 +729,7 @@ export const RegisterProjectPage: React.FC = () => {
                   <Button
                     variant="primary"
                     size="md"
-                    onClick={handleNextStep}
+                    onClick={onNextStep}
                     rightIcon={<ArrowRight className="w-4 h-4" />}
                   >
                     Continue
@@ -797,10 +739,10 @@ export const RegisterProjectPage: React.FC = () => {
                     variant="gold"
                     size="lg"
                     isLoading={isSubmitting}
-                    onClick={handleSubmitRegistration}
+                    onClick={onSubmitRegistration}
                     leftIcon={<ShieldCheck className="w-4 h-4" />}
                   >
-                    Submit Registration
+                    {isEditing ? "Update Registration" : "Submit Registration"}
                   </Button>
                 )}
               </div>

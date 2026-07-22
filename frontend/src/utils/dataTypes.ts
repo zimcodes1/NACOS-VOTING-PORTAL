@@ -93,3 +93,11 @@ export interface DashboardProps {
   onVerifyMatric: (matricNumber: string) => boolean;
   onClearMatric: () => void;
 }
+
+export interface Judge {
+  id: string;
+  name: string;
+  title: string;
+  bio: string;
+  image_url: string;
+}

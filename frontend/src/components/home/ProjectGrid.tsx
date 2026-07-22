@@ -174,6 +174,18 @@ export const ProjectGrid: React.FC<ProjectGridProps> = ({
         </div>
       </div>
 
+      {selectedTrack === "software" && (
+        <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-900 text-xs space-y-1">
+          <div className="font-extrabold flex items-center gap-1.5 text-amber-950">
+            <Lock className="w-4 h-4 text-amber-600 shrink-0" />
+            <span>Public Voting Closed for Software Track</span>
+          </div>
+          <p className="text-text-secondary leading-relaxed">
+            Projects in the Software Track are evaluated exclusively by the professional judging panel and are not open to public voting. You are welcome to view project details, team contacts, and live demo links!
+          </p>
+        </div>
+      )}
+
       {/* Render Category Sections (Voting OPEN categories sorted at the TOP) */}
       {projects.length > 0 ? (
         <div className="space-y-12">
@@ -196,7 +208,11 @@ export const ProjectGrid: React.FC<ProjectGridProps> = ({
                       </h2>
 
                       {/* Voting Status Indicator Badge */}
-                      {isVotingOpen ? (
+                      {category.track === "software" ? (
+                        <Badge variant="warning" size="sm" className="bg-amber-500/10 text-amber-600 border border-amber-500/20">
+                          Judged Category
+                        </Badge>
+                      ) : isVotingOpen ? (
                         <Badge variant="success" size="sm" pulse>
                           Voting Active
                         </Badge>

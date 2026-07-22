@@ -4,8 +4,8 @@ from .models import Judge, ScoreCriterion, Score, EventSettings
 
 @admin.register(Judge)
 class JudgeAdmin(admin.ModelAdmin):
-    list_display = ('id', 'user', 'get_assigned_categories', 'created_at')
-    search_fields = ('user__username', 'user__first_name', 'user__last_name')
+    list_display = ('id', 'name', 'user', 'title', 'get_assigned_categories', 'created_at')
+    search_fields = ('name', 'title', 'user__username', 'user__first_name', 'user__last_name')
     filter_horizontal = ('assigned_categories',)
 
     def get_assigned_categories(self, obj):
@@ -15,9 +15,14 @@ class JudgeAdmin(admin.ModelAdmin):
 
 @admin.register(ScoreCriterion)
 class ScoreCriterionAdmin(admin.ModelAdmin):
-    list_display = ('id', 'name', 'category', 'max_score', 'weight')
-    list_filter = ('category',)
+    list_display = ('id', 'name', 'get_categories', 'max_score', 'weight')
+    list_filter = ('categories',)
     search_fields = ('name',)
+    filter_horizontal = ('categories',)
+
+    def get_categories(self, obj):
+        return ", ".join([c.name for c in obj.categories.all()])
+    get_categories.short_description = "Attached Categories"
 
 
 @admin.register(Score)

@@ -253,6 +253,62 @@ class LookupProjectAPIView(APIView):
             )
 
 
+class UpdateProjectAPIView(APIView):
+    """
+    PATCH /api/projects/<int:pk>/update/
+    Allows an entrant team to update their project details.
+    Requires registration_code and contact_email in headers, query parameters, or request body.
+    """
+    def put(self, request, pk):
+        return self.patch(request, pk)
+
+    def patch(self, request, pk):
+        try:
+            project = Project.objects.get(pk=pk)
+        except Project.DoesNotExist:
+            return Response(
+                {"error": "Project not found."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        code = (
+            request.headers.get('X-Registration-Code')
+            or request.query_params.get('code')
+            or request.data.get('registration_code')
+        )
+        email = (
+            request.headers.get('X-Contact-Email')
+            or request.query_params.get('email')
+            or request.data.get('contact_email')
+        )
+
+        if not code or not email:
+            return Response(
+                {"error": "Both registration code and contact email are required to authorize the update."},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+
+        if (
+            project.registration_code.strip().lower() != code.strip().lower()
+            or project.contact_email.strip().lower() != email.strip().lower()
+        ):
+            return Response(
+                {"error": "Invalid registration code or email for this project."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        serializer = ProjectCreateSerializer(project, data=request.data, partial=True)
+        if serializer.is_valid():
+            category = serializer.validated_data.get('category')
+            if category:
+                project.track = category.track
+            serializer.save()
+            
+            detail_serializer = ProjectDetailSerializer(project)
+            return Response(detail_serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
 class ImageUploadAPIView(APIView):
     """
     POST /api/upload-image/
