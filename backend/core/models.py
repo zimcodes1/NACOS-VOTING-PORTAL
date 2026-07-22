@@ -3,9 +3,20 @@ from django.db import models
 
 
 class Category(models.Model):
+    class ExhibitionTrack(models.TextChoices):
+        SOFTWARE = 'software', 'Software Track'
+        GRAPHIC_DESIGN = 'graphic_design', 'Design Track'
+        AI_PROMPTING = 'ai_prompting', 'AI Prompting'
+
     name = models.CharField(max_length=100)
     slug = models.SlugField(max_length=100, blank=True, default='')
     description = models.TextField(blank=True, default='')
+    track = models.CharField(
+        max_length=50,
+        choices=ExhibitionTrack.choices,
+        default=ExhibitionTrack.SOFTWARE,
+    )
+    voting_open = models.BooleanField(default=True)
     requires_payment = models.BooleanField(default=False)
     fee_amount = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
     icon_name = models.CharField(max_length=50, blank=True, default='Grid')
@@ -15,7 +26,8 @@ class Category(models.Model):
         verbose_name_plural = "Categories"
 
     def __str__(self):
-        return self.name
+        status_str = "OPEN" if self.voting_open else "CLOSED"
+        return f"{self.name} ({self.get_track_display()}) — [{status_str}]"
 
 
 class Project(models.Model):
@@ -57,13 +69,17 @@ class Project(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def save(self, *args, **kwargs):
+        if self.category and not self.track:
+            self.track = self.category.track
+
         if not self.registration_code:
             prefix_map = {
                 self.ExhibitionTrack.SOFTWARE: 'SOFT',
                 self.ExhibitionTrack.GRAPHIC_DESIGN: 'GRAP',
                 self.ExhibitionTrack.AI_PROMPTING: 'AI',
             }
-            prefix = prefix_map.get(self.track, 'SOFT')
+            track_val = self.track or (self.category.track if self.category else self.ExhibitionTrack.SOFTWARE)
+            prefix = prefix_map.get(track_val, 'SOFT')
 
             # Query existing code numbers for this prefix to get auto-increment next number
             existing_codes = Project.objects.filter(

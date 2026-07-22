@@ -2,7 +2,7 @@
 
 **Naming:** this system is the **"NACOS Software Exhibition"** — use that exact name in page titles, the Django project's `verbose_name`, browser tab titles, and any prompts you feed to an AI code-gen tool while scaffolding, so it doesn't get generated as or confused with a generic "student/voting portal."
 
-Scope note: 2 days gets you a working skeleton with all 5 screens wired to real endpoints, DB constraints enforced, and Paystack in **test mode**. Treat Day 2 evening as a checkpoint, not a finish line — real device testing and Paystack live-mode switch should happen after this roadmap, with buffer before the actual event.
+Scope note: 2 days gets you a working skeleton with all 5 screens wired to real endpoints and DB constraints enforced. Payment collection is manual (see Stage 5) — no gateway integration, which frees up real time versus the original plan. Treat Day 2 evening as a checkpoint, not a finish line — real device testing should happen after this roadmap, with buffer before the actual event.
 
 ---
 
@@ -23,11 +23,10 @@ source venv/bin/activate
 pip install django djangorestframework django-cors-headers \
     psycopg2-binary python-decouple \
     channels channels-redis daphne \
-    requests django-filter
+    django-filter
 
 django-admin startproject config .
-python manage.py startapp core        # projects, categories, votes
-python manage.py startapp payments    # paystack integration
+python manage.py startapp core        # projects, categories, votes, payments (manual)
 python manage.py startapp judging     # judges, scores
 python manage.py startapp realtime    # channels consumers
 ```
@@ -43,8 +42,9 @@ python manage.py startapp realtime    # channels consumers
 | `python-decouple` | Clean `.env` config loading |
 | `channels` + `daphne` | ASGI + WebSocket support for live dashboard |
 | `channels-redis` | Redis as the Channels layer backend |
-| `requests` | Server-side calls to Paystack API |
 | `django-filter` | Category/search filtering on project list endpoint |
+
+*(No `requests` package needed for now — that was for server-side Paystack API calls. Add it back later if you reintroduce a payment gateway.)*
 
 **Frontend — React + TS**
 
@@ -80,8 +80,6 @@ SECRET_KEY=...
 DEBUG=True
 DATABASE_URL=postgres://nacos_user:password@localhost:5432/nacos_voting
 REDIS_URL=redis://localhost:6379/0
-PAYSTACK_SECRET_KEY=sk_test_xxx
-PAYSTACK_PUBLIC_KEY=pk_test_xxx
 CORS_ALLOWED_ORIGINS=http://localhost:5173
 ```
 
@@ -91,7 +89,7 @@ CORS_ALLOWED_ORIGINS=http://localhost:5173
 
 ### Stage 2: Models + Admin (Hour 1–3)
 
-- Write all models from the data model spec: `Category`, `Project` (with `registration_code`, `contact_name`, `contact_email`, `contact_phone`, `show_contact_publicly`), `Voter`, `Vote`, `Payment` (in `core`/`payments`), `Judge`, `ScoreCriterion`, `Score` (in `judging`).
+- Write all models from the data model spec: `Category`, `Project` (with `registration_code`, `contact_name`, `contact_email`, `contact_phone`, `show_contact_publicly`), `Payment` (manual-tracking fields: `status`, `confirmed_by`, `confirmed_at`, `payment_method`, `notes`), `Voter`, `Vote` — all in `core` — plus `Judge`, `ScoreCriterion`, `Score` in `judging`.
 - Add a `save()` override or a `pre_save` signal on `Project` that generates `registration_code` once, on first save only (format `NSE26-XXXX` — see implementation plan section 4.1). Test it generates a unique code even if two registrations save in the same second.
 - Add the `unique_together = ("matric_number", "category")` constraint on `Vote` immediately — this is the highest-risk rule, get it into a migration on day 1.
 - Register everything in `admin.py` for each app with sensible `list_display` (organizers will live in this admin panel to enter projects) — make sure `registration_code` and `contact_email`/`contact_phone` are visible columns so organizers can quickly look up or contact a team without opening each record.
@@ -148,31 +146,27 @@ wait
 
 ---
 
-## DAY 2 — Payments, Judging, Real-Time Dashboard
+## DAY 2 — Registration, Judging, Real-Time Dashboard
 
-### Stage 5: Paystack Integration (Hour 0–2.5)
+Cutting the payment gateway frees up roughly half a day versus the original plan — that time is folded into Stage 6 (Judges' Portal) and Stage 7 (Dashboard) below, plus a slightly longer Stage 8 cleanup pass at the end.
+
+### Stage 5: Registration Form + Manual Payment Approval (Hour 0–1.5)
 
 **Backend:**
-- `POST /api/payments/initialize/` — creates a `Payment` row (`status=pending`), calls Paystack `transaction/initialize`, returns the `authorization_url` or Inline access code.
-- `GET /api/payments/verify/:reference/` — calls Paystack `transaction/verify`, updates `Payment.status`, flips `Project.registration_status` to `confirmed` only on verified success.
-- `POST /api/paystack/webhook/` — validates `x-paystack-signature` HMAC SHA512, handles `charge.success` as source of truth (independent of frontend callback).
-- Add `PAYSTACK_SECRET_KEY` usage server-side only; confirm it never appears in any frontend bundle or network request from the browser.
+- `POST /api/register-project/` — creates the `Project` row (`registration_status=pending_payment`, or straight to `confirmed` if `Category.requires_payment` is `False`) plus its related `Payment` row (`status=pending`, or `status=waived` for fee-free categories). Generates `registration_code` on save (built in Stage 2).
+- `GET /api/lookup-project/?code=&email=` — lets a team look up their own project status later using their `registration_code` + `contact_email`, without needing a login system.
+- No payment endpoints needed — an organizer confirms payment directly in `/admin/` by finding the project and flipping `Payment.status` to `confirmed`. Wire up the `post_save` signal on `Payment` (also built in Stage 2 as part of the model, or here if you deferred it) that flips `Project.registration_status` to `confirmed` automatically when `Payment.status` becomes `confirmed`.
 
 **Frontend:**
-- Registration form for software-track entries (team info + project details + `contact_name`/`contact_email`/`contact_phone` + a checkbox for `show_contact_publicly`).
-- On successful registration, show the assigned `registration_code` prominently and tell the team to save it — it's how they'll look up or amend their entry later, and how support/organizers will refer to it if there's a payment issue.
-- Paystack Inline.js popup (`react-paystack` package optional, or vanilla script tag) using the **public** key only.
-- Post-payment redirect handling → poll `verify/:reference/` → show confirmed state.
+- Registration form (team info + project details + `contact_name`/`contact_email`/`contact_phone` + `show_contact_publicly` checkbox).
+- On successful submit: show the assigned `registration_code` prominently, plus payment instructions (account details/whatever the department is using) telling the team to quote the code as their transfer narration. Tell them to save the code — it's how they'll check their status later.
+- A simple "Check my registration status" page: input `registration_code` + `contact_email` → shows current status (pending/confirmed).
 
-```bash
-npm install react-paystack   # optional convenience wrapper, or use Paystack's vanilla inline.js via script tag
-```
-
-**Checkpoint:** Full registration → test-mode payment → webhook fires → `Project.registration_status` flips to `confirmed` → project now appears in the public voting grid. Use Paystack test cards, confirm both success and failure paths behave correctly.
+**Checkpoint:** Register a test project → confirm it shows `pending_payment` and does *not* appear in the public grid yet → go into `/admin/`, mark its `Payment` as `confirmed` → confirm the project flips to `confirmed` and now appears on the public Home grid.
 
 ---
 
-### Stage 6: Judges' Portal (Hour 2.5–4.5)
+### Stage 6: Judges' Portal (Hour 1.5–4)
 
 **Backend:**
 - Django auth (session or DRF Token) for judges — accounts pre-created via admin, no self-registration needed.
@@ -189,7 +183,7 @@ npm install react-paystack   # optional convenience wrapper, or use Paystack's v
 
 ---
 
-### Stage 7: Real-Time Leaderboard (Hour 4.5–7)
+### Stage 7: Real-Time Leaderboard (Hour 4–7)
 
 **Backend:**
 - Add `channels` routing (`asgi.py`), a `LeaderboardConsumer` that joins a `leaderboard` group.
@@ -212,11 +206,11 @@ daphne -b 0.0.0.0 -p 8000 config.asgi:application
 
 ### Stage 8: Integration Pass + Cleanup (Hour 7–8)
 
-- Walk all 5 screens end-to-end as if you were a real student: discover → verify → vote → (separately) register+pay → judge login/score → dashboard reflects everything.
-- Check CORS, error states (network failure, invalid matric number, double vote, failed payment) all show sane messages instead of raw errors.
+- Walk all 5 screens end-to-end as if you were a real student: discover → verify → vote → (separately) register → check status pending → get manually confirmed via admin → appears in grid → judge login/score → dashboard reflects everything.
+- Check CORS, error states (network failure, invalid matric number, double vote, project not found on status lookup) all show sane messages instead of raw errors.
 - Confirm `.env` secrets are gitignored, `DEBUG=False` path tested at least once, `ALLOWED_HOSTS` set correctly for wherever you'll deploy.
 
-**End of Day 2 goal:** A demoable, deployable skeleton covering all 5 required screens, with the two highest-risk mechanics (duplicate voting, payment verification) proven under basic stress rather than just "looks right in the UI."
+**End of Day 2 goal:** A demoable, deployable skeleton covering all 5 required screens, with the highest-risk mechanic (duplicate voting) proven under basic stress rather than just "looks right in the UI," and the registration→manual-confirm→public-visibility chain working cleanly end to end.
 
 ---
 
@@ -232,7 +226,6 @@ python-decouple
 channels
 channels-redis
 daphne
-requests
 django-filter
 ```
 
@@ -245,7 +238,6 @@ tailwindcss
 postcss
 autoprefixer
 recharts
-react-paystack   (optional — or use Paystack inline.js script tag directly)
 ```
 
 **System (Ubuntu 22.04)**
@@ -261,6 +253,6 @@ redis-server
 
 - Production deployment (Render/Railway/VPS setup) — separate task once the skeleton works locally.
 - Real device/mobile browser testing across the student body's actual phones.
-- Switching Paystack from test to live keys.
+- Any payment gateway integration — payment is fully manual for now (see Stage 5); revisit only if registration volume outgrows manual reconciliation.
 - Load testing at realistic event-day concurrency (the Day 1 stress test is a sanity check, not a load test).
-- Final visual polish/branding — this roadmap prioritizes correctness of the voting/payment/scoring mechanics over UI finish.
+- Final visual polish/branding — this roadmap prioritizes correctness of the voting/registration/scoring mechanics over UI finish.

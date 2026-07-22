@@ -12,6 +12,8 @@ class CategorySerializer(serializers.ModelSerializer):
             'name',
             'slug',
             'description',
+            'track',
+            'voting_open',
             'requires_payment',
             'fee_amount',
             'icon_name',
@@ -83,6 +85,39 @@ class ProjectDetailSerializer(serializers.ModelSerializer):
             'registration_status',
             'vote_count',
             'featured',
+            'tags',
+            'created_at',
+        ]
+
+
+class ProjectCreateSerializer(serializers.ModelSerializer):
+    category_id = serializers.PrimaryKeyRelatedField(
+        queryset=Category.objects.all(), source='category', write_only=True
+    )
+    category = CategorySerializer(read_only=True)
+    registration_code = serializers.CharField(read_only=True)
+    registration_status = serializers.CharField(read_only=True)
+
+    class Meta:
+        model = Project
+        fields = [
+            'id',
+            'registration_code',
+            'title',
+            'tagline',
+            'description',
+            'thumbnail_url',
+            'live_preview_url',
+            'category_id',
+            'category',
+            'track',
+            'team_name',
+            'team_members',
+            'contact_name',
+            'contact_email',
+            'contact_phone',
+            'show_contact_publicly',
+            'registration_status',
             'tags',
             'created_at',
         ]

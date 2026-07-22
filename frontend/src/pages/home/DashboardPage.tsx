@@ -140,6 +140,7 @@ export const DashboardPage: React.FC<DashboardProps> = ({
                     onSortChange={onSortChange}
                     onVote={handleInitiateVote}
                     onCategorySelect={onCategoryChange}
+                    onTrackSelect={onTrackChange}
                     onResetFilters={() => {
                         onSearchChange("");
                         onCategoryChange("all");

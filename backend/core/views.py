@@ -1,14 +1,21 @@
+import os
 import re
+import uuid
+import cloudinary
+import cloudinary.uploader
+from django.conf import settings
 from django.db import IntegrityError
 from django.db.models import Count, Q
 from rest_framework import generics, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from rest_framework.parsers import MultiPartParser, FormParser
 from .models import Category, Project, Voter, Vote
 from .serializers import (
     CategorySerializer,
     ProjectListSerializer,
     ProjectDetailSerializer,
+    ProjectCreateSerializer,
 )
 
 MATRIC_REGEX = re.compile(r'^(?:FT\d{2}[A-Z]{3,4}\d{3,5}|[A-Z]{2,5}/\d{4}/\d{3,5}|[A-Z0-9]{7,15})$', re.IGNORECASE)
@@ -16,13 +23,21 @@ MATRIC_REGEX = re.compile(r'^(?:FT\d{2}[A-Z]{3,4}\d{3,5}|[A-Z]{2,5}/\d{4}/\d{3,5
 
 class CategoryListAPIView(generics.ListAPIView):
     """
-    GET /api/categories/
-    List all project categories with annotated project_count.
+    GET /api/categories/?track=
+    List all project categories sorted with voting_open=True at the top.
     """
-    queryset = Category.objects.annotate(
-        project_count=Count('projects')
-    ).order_by('name')
     serializer_class = CategorySerializer
+
+    def get_queryset(self):
+        queryset = Category.objects.annotate(
+            project_count=Count('projects')
+        ).order_by('-voting_open', 'name')
+
+        track_param = self.request.query_params.get('track')
+        if track_param and track_param != 'all':
+            queryset = queryset.filter(track=track_param)
+
+        return queryset
 
 
 class ProjectListAPIView(generics.ListAPIView):
@@ -125,7 +140,7 @@ class VoteCreateAPIView(APIView):
     """
     POST /api/votes/
     Accepts matric_number and project_id to cast a vote.
-    Enforces 1 vote per category per matric number (returns 409 Conflict if duplicate).
+    Checks if category voting is open, and enforces 1 vote per category per voter.
     """
     def post(self, request):
         matric_number = request.data.get('matric_number', '')
@@ -150,6 +165,16 @@ class VoteCreateAPIView(APIView):
             return Response(
                 {"error": "Project not found."},
                 status=status.HTTP_404_NOT_FOUND
+            )
+
+        # Enforce Category Voting Open Check
+        if not project.category.voting_open:
+            return Response(
+                {
+                    "error": "Voting Closed",
+                    "message": f"Voting for category '{project.category.name}' is currently closed."
+                },
+                status=status.HTTP_400_BAD_REQUEST
             )
 
         voter, _ = Voter.objects.get_or_create(matric_number=clean_matric)
@@ -187,3 +212,97 @@ class VoteCreateAPIView(APIView):
             "project_id": project.id,
             "vote_count": new_vote_count
         }, status=status.HTTP_201_CREATED)
+
+
+class RegisterProjectAPIView(generics.CreateAPIView):
+    """
+    POST /api/register-project/
+    Creates a new project entry and auto-assigns track-based registration code (SOFT_001, GRAP_001, AI_001).
+    Returns full project metadata & registration code.
+    """
+    queryset = Project.objects.all()
+    serializer_class = ProjectCreateSerializer
+
+
+class LookupProjectAPIView(APIView):
+    """
+    GET /api/lookup-project/?code=&email=
+    Allows an entrant team to look up their project status using registration_code + contact_email.
+    """
+    def get(self, request):
+        code = request.query_params.get('code', '').strip()
+        email = request.query_params.get('email', '').strip()
+
+        if not code or not email:
+            return Response(
+                {"error": "Both registration_code and contact_email are required."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            project = Project.objects.select_related('category').get(
+                registration_code__iexact=code,
+                contact_email__iexact=email
+            )
+            serializer = ProjectDetailSerializer(project)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except Project.DoesNotExist:
+            return Response(
+                {"error": "No project found matching the provided registration code and email."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+
+class ImageUploadAPIView(APIView):
+    """
+    POST /api/upload-image/
+    Accepts multipart/form-data with file 'image'.
+    Uploads to Cloudinary if env keys exist, else saves locally.
+    Returns { "url": "..." }
+    """
+    parser_classes = [MultiPartParser, FormParser]
+
+    def post(self, request):
+        image_file = request.FILES.get('image')
+        if not image_file:
+            return Response(
+                {"error": "No image file provided."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        cloud_name = getattr(settings, 'CLOUDINARY_CLOUD_NAME', '') or os.getenv('CLOUDINARY_CLOUD_NAME', '')
+        api_key = getattr(settings, 'CLOUDINARY_API_KEY', '') or os.getenv('CLOUDINARY_API_KEY', '')
+        api_secret = getattr(settings, 'CLOUDINARY_API_SECRET', '') or os.getenv('CLOUDINARY_API_SECRET', '')
+
+        if cloud_name and api_key and api_secret:
+            try:
+                cloudinary.config(
+                    cloud_name=cloud_name,
+                    api_key=api_key,
+                    api_secret=api_secret,
+                    secure=True
+                )
+                upload_res = cloudinary.uploader.upload(
+                    image_file,
+                    folder="nacos_voting_portal"
+                )
+                return Response(
+                    {"url": upload_res.get("secure_url")},
+                    status=status.HTTP_201_CREATED
+                )
+            except Exception as e:
+                print("Cloudinary upload failed, falling back to local storage:", e)
+
+        # Fallback local upload handling
+        upload_dir = settings.BASE_DIR / 'media' / 'uploads'
+        upload_dir.mkdir(parents=True, exist_ok=True)
+        ext = image_file.name.split('.')[-1] if '.' in image_file.name else 'png'
+        filename = f"{uuid.uuid4().hex}.{ext}"
+        filepath = upload_dir / filename
+
+        with open(filepath, 'wb+') as destination:
+            for chunk in image_file.chunks():
+                destination.write(chunk)
+
+        local_url = request.build_absolute_uri(f"{settings.MEDIA_URL}uploads/{filename}")
+        return Response({"url": local_url}, status=status.HTTP_201_CREATED)

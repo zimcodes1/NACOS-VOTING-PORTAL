@@ -12,6 +12,8 @@ export interface Category {
   fee_amount: number; // in Kobo or Naira
   project_count: number;
   icon_name?: string;
+  track?: ExhibitionTrack;
+  voting_open?: boolean;
 }
 
 export interface TeamMember {

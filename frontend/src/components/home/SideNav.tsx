@@ -5,7 +5,6 @@ import {
   Trophy,
   PlusCircle,
   FileText,
-  Sparkles,
   X,
   ChevronRight,
   PanelLeftClose,
@@ -170,26 +169,6 @@ export const SideNav: React.FC<SideNavProps> = ({
           );
         })}
       </div>
-
-      {/* Footer Support Card */}
-      {!collapsed ? (
-        <div className="p-4 rounded-2xl bg-gradient-to-br from-primary-light/80 to-gold-light/40 border border-primary/20 space-y-2">
-          <div className="flex items-center gap-2 text-xs font-bold text-primary-dark">
-            <Sparkles className="w-4 h-4 text-gold shrink-0" />
-            <span>Have a Code?</span>
-          </div>
-          <p className="text-[11px] text-text-secondary leading-relaxed">
-            Codes (e.g. <code className="font-mono text-navy font-bold">NSE26-XXXX</code>) allow fast project verification & support.
-          </p>
-        </div>
-      ) : (
-        <div
-          title="Registration code support"
-          className="p-3 rounded-2xl bg-gradient-to-br from-primary-light/80 to-gold-light/40 border border-primary/20 flex justify-center items-center text-gold cursor-pointer"
-        >
-          <Sparkles className="w-5 h-5 text-gold" />
-        </div>
-      )}
     </div>
   );
 

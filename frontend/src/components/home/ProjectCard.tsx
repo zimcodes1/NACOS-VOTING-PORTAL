@@ -21,6 +21,7 @@ interface ProjectCardProps {
   onVote: (project: Project) => void;
   onContactClick?: (project: Project) => void;
   exhibit?: boolean;
+  isVotingOpen?: boolean;
 }
 
 export const ProjectCard: React.FC<ProjectCardProps> = ({
@@ -29,6 +30,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
   onVote,
   onContactClick,
   exhibit,
+  isVotingOpen = true,
 }) => {
   const [showContact, setShowContact] = useState(false);
   const [isAssetModalOpen, setIsAssetModalOpen] = useState(false);
@@ -61,6 +63,8 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
       link.click();
     }
   };
+
+  const isVotingDisabled = hasVotedInCategory || !isVotingOpen;
 
   return (
     <>
@@ -251,19 +255,21 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
                 </span>
 
                 <Button
-                  variant={hasVotedInCategory ? "light" : "primary"}
+                  variant={hasVotedInCategory ? "light" : !isVotingOpen ? "outline" : "primary"}
                   size="sm"
-                  disabled={hasVotedInCategory}
+                  disabled={isVotingDisabled}
                   leftIcon={
                     hasVotedInCategory ? (
                       <CheckCircle2 className="w-3.5 h-3.5 text-success" />
+                    ) : !isVotingOpen ? (
+                      <Lock className="w-3.5 h-3.5 text-text-muted" />
                     ) : (
                       <ThumbsUp className="w-3.5 h-3.5" />
                     )
                   }
                   onClick={() => onVote(project)}
                 >
-                  {hasVotedInCategory ? "Voted" : "Vote"}
+                  {hasVotedInCategory ? "Voted" : !isVotingOpen ? "Voting Closed" : "Vote"}
                 </Button>
               </div>
             </div>

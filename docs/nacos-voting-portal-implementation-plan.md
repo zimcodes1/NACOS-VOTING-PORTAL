@@ -3,7 +3,7 @@
 
 ## 1. Overview
 
-A web platform for a department-level software/graphic design exhibition with three user groups (public/students, judges, admins) and a real-time leaderboard for venue display. Software-track entrants pay a registration fee via Paystack; graphic-design entrants may or may not (clarify with the organizing committee — see Open Questions).
+A web platform for a department-level software/graphic design exhibition with three user groups (public/students, judges, admins) and a real-time leaderboard for venue display. Software-track entrants pay a registration fee, collected **manually** (cash/transfer, handled offline by organizers) rather than through an in-app payment gateway — an admin marks a project's payment status as confirmed once received. This cuts the Paystack integration work out of the build entirely; see Section 6 for how the manual approval flow replaces it.
 
 **Naming — read this before generating any UI copy, page titles, meta tags, or component names with an AI tool:** the product name is **"NACOS Software Exhibition."** Every screen (login, registration form, browser tab title, email/receipt subject lines, admin panel branding) should say "NACOS Software Exhibition" explicitly, not generic phrasing like "Student Portal," "NSUK Portal," or "Voting Portal." This is a standalone event microsite, not a module of the university's main student portal — the explicit name prevents an AI code-gen tool (or a first-time user) from assuming it's tied to `ug.nsuk.edu.ng` or any other existing NSUK system.
 
@@ -19,7 +19,7 @@ Given your existing stack (TypeScript/React, Django DRF/FastAPI, Ubuntu 22.04), 
 | Backend API | **Django + Django REST Framework** | You already know it; built-in admin panel is huge here — organizers get a free CRUD interface to manage projects, judges, and votes without you building an admin UI from scratch. This alone saves days. |
 | Real-time leaderboard | **Django Channels + Redis** (WebSockets) | Needed for the "live TV dashboard" requirement. Redis also doubles as your channel layer and can cache leaderboard aggregates. |
 | Database | **PostgreSQL** | Correct choice — you need strong uniqueness constraints (matric number + category) and relational integrity between votes/scores/projects. |
-| Payments | **Paystack** (Standard Checkout or Inline popup) | Required per your brief for software-track registration fees. |
+| Payments | **Manual collection** (cash/bank transfer, offline) + admin-side "mark as paid" toggle | Cuts a full integration (gateway API, webhook signature verification, test/live key handling) out of the build. Organizers collect payment however works for the event and flip a status field in the admin panel. See Section 6. |
 | Hosting (budget-friendly, matches your MediScan approach) | Frontend on **Vercel**, backend on **Render/Railway** (Django + Postgres + Redis add-ons), or a single Ubuntu VPS if you want everything self-hosted for the event | Render/Railway give you Postgres+Redis with minimal ops for a time-boxed event |
 
 **Why not FastAPI here:** FastAPI is great for the AI-style stateless APIs you've used it for (MediScan, PhishShield), but this project's core complexity is relational data integrity + an admin backoffice + real-time fan-out — Django's ORM constraints, admin, and Channels ecosystem handle all three natively. Stick with one backend framework rather than splitting Django/FastAPI like your gate pass project; there's no clear seam here that benefits from two services, and it would just add deployment overhead for an event with a hard deadline.
@@ -41,7 +41,8 @@ Given your existing stack (TypeScript/React, Django DRF/FastAPI, Ubuntu 22.04), 
                      │  - Auth (judges/admin)│
                      │  - Voting logic       │
                      │  - Scoring logic      │
-                     │  - Paystack webhooks  │
+                     │  - Manual payment     │
+                     │    approval (admin)   │
                      │  - Django Channels    │
                      └───┬───────────┬────────┘
                          │           │
@@ -51,10 +52,6 @@ Given your existing stack (TypeScript/React, Django DRF/FastAPI, Ubuntu 22.04), 
               │  truth)     │   │  layer +  │
               └─────────────┘   │  cache)   │
                                  └───────────┘
-                     ┌────────────────────┐
-                     │   Paystack API      │
-                     │ (payment + webhook) │
-                     └────────────────────┘
 ```
 
 ---
@@ -84,14 +81,18 @@ Project
 
 Payment
 - id, project (FK)  -> this FK is what attributes a payment to a specific
-  project; a project cannot have more than one *successful* payment
+  project; a project cannot have more than one *confirmed* payment
   (enforce with a partial unique constraint or an application check on
-  status=success), but can have multiple pending/failed attempts if a
-  student retries after a failed charge.
-- paystack_reference (unique)
-- amount, status (pending/success/failed)
-- verified_at
-- raw_webhook_payload (JSONField, for audit)
+  status=confirmed).
+- amount
+- status (pending / confirmed / waived)  -- "waived" covers free-track
+  entries (e.g. graphic design, if the committee decides it's fee-free)
+  so the same model/field covers both tracks cleanly.
+- confirmed_by (FK -> Django User, the admin/organizer who marked it paid)
+- confirmed_at
+- payment_method (free text or choices: "cash", "bank transfer", "other")
+- notes (free text — e.g. transaction reference the student quotes, if
+  paying by transfer, so an organizer can cross-check against the bank app)
 
 Voter
 - matric_number (unique, primary key or unique indexed)
@@ -129,7 +130,7 @@ Two distinct problems were previously underspecified — worth being explicit ab
 **"How do we uniquely identify a project across registration, payment, and voting?"** — the `registration_code`, generated once at successful registration:
 
 - Format: `NSE26-XXXX` (**N**ACOS **S**oftware **E**xhibition, year, then a zero-padded sequential or short random suffix) — e.g. `NSE26-0001`, `NSE26-0002`. Django: an `AutoField`/sequence combined with a save-time formatter, or `uuid4().hex[:6].upper()` if you'd rather avoid guessable sequential codes (marginally more ballot-stuffing-resistant since it stops someone from enumerating `NSE26-0001` through `NSE26-0099`).
-- This code is what appears on the Paystack payment description/reference metadata, on the project's public card (small, unobtrusive — organizers and judges use it to disambiguate two similarly-named projects), and in any support communication ("my payment didn't confirm, my code is NSE26-0034").
+- This code is what appears on the project's public card (small, unobtrusive — organizers and judges use it to disambiguate two similarly-named projects), and in any support/payment communication ("I've made the transfer for NSE26-0034, please confirm" — an organizer searches this code in the admin panel to find and confirm the right project).
 - `Payment.project` (the FK) is the actual attribution mechanism in the database — the `registration_code` is the *human-readable* face of that same relationship, so a student or organizer can talk about "project NSE26-0034" without needing to know or share the internal numeric `id`.
 
 ### 4.2 Contact Info as a Feature, Not Just a Field
@@ -172,14 +173,18 @@ Since `contact_email` / `contact_phone` are being captured anyway for registrati
 
 ---
 
-## 6. Paystack Integration (Software Track Registration)
+## 6. Manual Payment Approval Flow (Software Track Registration)
 
-1. **Initialize transaction** (backend): `POST https://api.paystack.co/transaction/initialize` with `email` (the project's `contact_email`), `amount` (in kobo), a `reference` you generate and store against the `Payment` row as `pending`, and `metadata.registration_code` set to the project's code — this makes the project instantly identifiable from inside the Paystack dashboard itself if you ever need to manually cross-check a disputed payment.
-2. **Redirect/Inline**: use Paystack Inline JS popup on the registration form (better UX than full redirect for a mobile-heavy student audience) or the hosted checkout redirect — either works.
-3. **Verify, don't trust the frontend callback**: after Paystack redirects back with success, call `GET https://api.paystack.co/transaction/verify/:reference` server-side before marking `Payment.status = success`. Never flip payment status based solely on the frontend callback — it can be spoofed.
-4. **Webhook (required, not optional)**: set up a `POST /api/paystack/webhook/` endpoint, verify the `x-paystack-signature` header (HMAC SHA512 with your secret key) on every incoming webhook, and use `charge.success` events as the authoritative source of truth for payment confirmation — this covers cases where the student closes the tab right after paying but before the redirect completes.
-5. Keep your **secret key server-side only**, in environment variables — never in the React bundle. Only the **public key** goes to the frontend for Inline.js.
-6. Project's `registration_status` flips from `pending_payment` → `confirmed` only after webhook-verified payment — this is what unlocks it appearing in the public voting grid.
+No payment gateway integration — this whole section used to be Paystack init/verify/webhook work, which is now cut. Instead:
+
+1. **Registration form** collects team/project info as normal but does **not** block on payment — a project can save with `Payment.status = pending` immediately, and `Project.registration_status = pending_payment`.
+2. **On the confirmation screen**, show the team their `registration_code` plus clear instructions for how to pay (bank account details / whatever the department uses) and tell them to **quote their registration code** as the payment reference/narration — this is what lets an organizer match an incoming transfer to the right project without guesswork.
+3. **Organizer confirms payment manually**: in the Django admin, an organizer finds the project (searchable by `registration_code`, `contact_email`, or `title`), and flips `Payment.status` to `confirmed`, filling in `confirmed_by` (auto-set to the logged-in admin user), `confirmed_at` (auto `now()`), and optionally `payment_method`/`notes`.
+4. **A Django signal or `save()` override** on `Payment` automatically flips the related `Project.registration_status` to `confirmed` the moment `status` changes to `confirmed` — this is the one bit of "automation" left in the flow, so organizers don't have to remember to update two records separately.
+5. **Public visibility rule stays the same as before**: only `confirmed` projects appear in the public voting grid — this prevents unpaid/unverified entries from being voted on, same guarantee you had with Paystack, just gated by a human instead of a webhook.
+6. If the graphic-design track ends up fee-free (per the open question in Section 8), just create those `Project` rows with `Payment.status = waived` at registration time so the same `registration_status = confirmed` gate applies uniformly across both tracks.
+
+**Trade-off worth being explicit about:** this removes a full day of integration/testing work (gateway setup, test-mode reconciliation, webhook signature verification, live-key cutover) but shifts the burden onto organizers doing manual reconciliation during a busy registration window — worth having at least one dedicated person on bank-alert-checking duty rather than leaving it ad hoc. If registration volume turns out to be higher than expected, you can always add Paystack back later as a v2 without changing the data model — `Payment.status` already has the right shape for it.
 
 ---
 
@@ -188,7 +193,7 @@ Since `contact_email` / `contact_phone` are being captured anyway for registrati
 1. Django models + admin (get organizers a working backoffice on day one — they can start entering projects while you build the frontend).
 2. Public project grid + search (read-only, no auth needed) — quick visible win.
 3. Matric number verification + voting with the DB unique constraint — this is the highest-risk feature (ballot stuffing), build and test it early and hammer it with concurrent requests before trusting it.
-4. Paystack registration flow + webhook — test thoroughly in Paystack test mode before going live.
+4. Registration form + manual payment approval flow in admin — much faster now than a full gateway integration, but still test the "registration_status flips to confirmed only after Payment.status=confirmed" logic properly.
 5. Judges' portal.
 6. Channels + Redis real-time dashboard — build last since it depends on votes/scores existing to visualize.
 
@@ -196,7 +201,8 @@ Since `contact_email` / `contact_phone` are being captured anyway for registrati
 
 ## 8. Open Questions to Settle With the Committee Before Building
 
-- Does the **graphic design** track also require the registration fee, or only software development (your message implies only software)?
+- Does the **graphic design** track also require the registration fee, or only software development (your message implies only software)? Affects whether those entries get `Payment.status = waived` automatically at registration.
+- Who on the organizing team is responsible for checking incoming transfers/cash and confirming payments in the admin panel during the registration window — this needs a named owner now that it's manual, not automatic.
 - What's the **audience-vote vs judge-score weighting** for the combined leaderboard?
 - Is there an **official matric number roster** the department can provide to validate against, or is format-checking + one-vote-per-category the only safeguard?
 - Expected concurrent load at peak voting (affects whether a single small VPS is enough or you need to scale the DB connections/Redis a bit).
@@ -206,7 +212,7 @@ Since `contact_email` / `contact_phone` are being captured anyway for registrati
 
 ## 9. Environment/Deployment Checklist
 
-- `.env`: `DJANGO_SECRET_KEY`, `DATABASE_URL`, `REDIS_URL`, `PAYSTACK_SECRET_KEY`, `PAYSTACK_PUBLIC_KEY` (frontend only), `ALLOWED_HOSTS`, `CORS_ALLOWED_ORIGINS`.
+- `.env`: `DJANGO_SECRET_KEY`, `DATABASE_URL`, `REDIS_URL`, `ALLOWED_HOSTS`, `CORS_ALLOWED_ORIGINS`.
 - Django Channels needs an ASGI server in production (Daphne or Uvicorn+Channels) — not the default WSGI dev server.
 - Postgres connection pooling (e.g. `django-db-geventpool` or just Render/Railway's managed Postgres, which handles this) if you expect a vote-rush spike.
-- HTTPS is mandatory — Paystack webhooks and Inline.js require it.
+- HTTPS is still recommended (matric number submissions, judge login) even without a payment gateway in the mix.
