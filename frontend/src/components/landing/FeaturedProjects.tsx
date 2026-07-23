@@ -6,20 +6,22 @@ import {
   ChevronRight,
   Sparkles,
   ArrowRight,
+  Layers,
+  Flame,
 } from "lucide-react";
 import { fetchProjects } from "../../api/dashboardAPI";
 import { ProjectCard } from "../home/ProjectCard";
-import { Card, Button } from "../ui";
+import { Button } from "../ui";
 import type { Project } from "../../utils/dataTypes";
 
 export const FeaturedProjects: React.FC = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [itemsPerPage, setItemsPerPage] = useState(3);
 
-  // Fetch up to 10 recent projects
+  // Fetch featured projects specifically for the landing page
   const { data: projects = [], isLoading } = useQuery<Project[]>({
     queryKey: ["featuredProjects"],
-    queryFn: () => fetchProjects(),
+    queryFn: () => fetchProjects({ featured: "true" }),
   });
 
   const featuredList = projects.slice(0, 10);
@@ -115,11 +117,45 @@ export const FeaturedProjects: React.FC = () => {
             ))}
           </div>
         ) : featuredList.length === 0 ? (
-          <Card variant="surface" className="p-8 text-center rounded-2xl border border-border space-y-2">
-            <p className="text-xs text-text-muted italic">
-              No exhibition projects available at the moment.
-            </p>
-          </Card>
+          /* Premium Empty State Card */
+          <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
+            className="p-8 sm:p-14 rounded-3xl bg-gradient-to-b from-surface via-surface to-background border border-border/80 text-center space-y-6 max-w-3xl mx-auto shadow-xl relative overflow-hidden"
+          >
+            {/* Ambient Background Glow */}
+            <div className="absolute -top-24 -right-24 w-64 h-64 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-gold/10 rounded-full blur-3xl pointer-events-none" />
+
+            <div className="relative z-10 space-y-4">
+              <div className="w-16 h-16 rounded-3xl bg-primary-light/60 border border-primary/20 flex items-center justify-center mx-auto text-primary shadow-md">
+                <Flame className="w-8 h-8 text-primary animate-pulse" />
+              </div>
+
+              <div className="space-y-2">
+                <h3 className="text-xl sm:text-2xl font-black text-navy tracking-tight">
+                  Featured Exhibition Showcase Opening Soon
+                </h3>
+                <p className="text-xs sm:text-sm text-text-secondary max-w-lg mx-auto leading-relaxed">
+                  Featured project entries will be unlocked and displayed on the event day. Submit your project entry now to be featured during the live exhibition!
+                </p>
+              </div>
+
+              <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+                <Button
+                  variant="primary"
+                  size="md"
+                  leftIcon={<Layers className="w-4 h-4" />}
+                  onClick={() => {
+                    window.location.href = "/register";
+                  }}
+                >
+                  Register Exhibition Project
+                </Button>
+              </div>
+            </div>
+          </motion.div>
         ) : (
           <div className="space-y-8">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 min-h-[420px]">
@@ -162,11 +198,10 @@ export const FeaturedProjects: React.FC = () => {
                     type="button"
                     onClick={() => setCurrentIndex(idx)}
                     aria-label={`Go to slide ${idx + 1}`}
-                    className={`h-2.5 rounded-full transition-all duration-300 cursor-pointer ${
-                      currentIndex === idx
-                        ? "w-8 bg-primary"
-                        : "w-2.5 bg-border hover:bg-text-muted"
-                    }`}
+                    className={`h-2.5 rounded-full transition-all duration-300 cursor-pointer ${currentIndex === idx
+                      ? "w-8 bg-primary"
+                      : "w-2.5 bg-border hover:bg-text-muted"
+                      }`}
                   />
                 ))}
               </div>

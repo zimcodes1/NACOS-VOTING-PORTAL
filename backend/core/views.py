@@ -75,6 +75,14 @@ class ProjectListAPIView(generics.ListAPIView):
         if track_param and track_param != 'all':
             queryset = queryset.filter(track=track_param)
 
+        # Filter by Featured status
+        featured_param = self.request.query_params.get('featured')
+        if featured_param is not None:
+            if featured_param.lower() == 'true':
+                queryset = queryset.filter(featured=True)
+            elif featured_param.lower() == 'false':
+                queryset = queryset.filter(featured=False)
+
         # Search term filter
         search_query = self.request.query_params.get('search')
         if search_query:
