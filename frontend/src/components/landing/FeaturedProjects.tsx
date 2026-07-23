@@ -153,17 +153,6 @@ export const FeaturedProjects: React.FC = () => {
                 >
                   Register Exhibition Project
                 </Button>
-
-                <Button
-                  variant="outline"
-                  size="md"
-                  rightIcon={<ArrowRight className="w-4 h-4" />}
-                  onClick={() => {
-                    window.location.href = "/home";
-                  }}
-                >
-                  Explore All Entries
-                </Button>
               </div>
             </div>
           </motion.div>
@@ -210,8 +199,8 @@ export const FeaturedProjects: React.FC = () => {
                     onClick={() => setCurrentIndex(idx)}
                     aria-label={`Go to slide ${idx + 1}`}
                     className={`h-2.5 rounded-full transition-all duration-300 cursor-pointer ${currentIndex === idx
-                        ? "w-8 bg-primary"
-                        : "w-2.5 bg-border hover:bg-text-muted"
+                      ? "w-8 bg-primary"
+                      : "w-2.5 bg-border hover:bg-text-muted"
                       }`}
                   />
                 ))}
