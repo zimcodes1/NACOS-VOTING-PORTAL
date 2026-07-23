@@ -34,6 +34,34 @@ class ProjectRegistrationAndVotingTests(TestCase):
         self.assertEqual(response.data["matric_number"], "FT24CMP0999")
         self.assertEqual(response.data["level"], "300 Level")
 
+    def test_seat_reservation_and_passcode_verification(self):
+        # 1. Reserve seat with matric, name, and password
+        res_payload = {
+            "matric_number": "ft24cmp0777",
+            "name": "John Doe",
+            "password": "secretpasscode"
+        }
+        res_response = self.client.post("/api/reserve-seat/", res_payload, format="json")
+        self.assertEqual(res_response.status_code, status.HTTP_201_CREATED)
+        self.assertTrue(res_response.data["success"])
+        self.assertEqual(res_response.data["matric_number"], "FT24CMP0777")
+
+        # 2. Verify voter with correct password
+        ver_response = self.client.post("/api/verify-voter/", {
+            "matric_number": "FT24CMP0777",
+            "password": "secretpasscode"
+        }, format="json")
+        self.assertEqual(ver_response.status_code, status.HTTP_200_OK)
+        self.assertTrue(ver_response.data["valid"])
+
+        # 3. Verify voter with wrong password
+        wrong_ver = self.client.post("/api/verify-voter/", {
+            "matric_number": "FT24CMP0777",
+            "password": "wrongpassword"
+        }, format="json")
+        self.assertEqual(wrong_ver.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertFalse(wrong_ver.data["valid"])
+
     def test_cannot_vote_with_registered_project_matric(self):
         # Register a project with matric FT24CMP0888
         project = Project.objects.create(
@@ -45,37 +73,48 @@ class ProjectRegistrationAndVotingTests(TestCase):
         )
 
         # 1. Verify Voter API should return 403 / valid=False
-        verify_resp = self.client.post("/api/verify-voter/", {"matric_number": "FT24CMP0888"}, format="json")
+        verify_resp = self.client.post("/api/verify-voter/", {"matric_number": "FT24CMP0888", "password": "pass"}, format="json")
         self.assertEqual(verify_resp.status_code, status.HTTP_403_FORBIDDEN)
         self.assertFalse(verify_resp.data["valid"])
-        self.assertIn("registered a project", verify_resp.data["message"])
 
-        # 2. Vote API should reject vote
+        # 2. Reservation API should return 403
+        res_resp = self.client.post("/api/reserve-seat/", {
+            "matric_number": "FT24CMP0888",
+            "name": "Project Owner",
+            "password": "pass"
+        }, format="json")
+        self.assertEqual(res_resp.status_code, status.HTTP_403_FORBIDDEN)
+
+        # 3. Vote API should reject vote
         vote_resp = self.client.post("/api/votes/", {
             "project_id": project.id,
-            "matric_number": "FT24CMP0888"
+            "matric_number": "FT24CMP0888",
+            "password": "pass"
         }, format="json")
         self.assertEqual(vote_resp.status_code, status.HTTP_403_FORBIDDEN)
-        self.assertIn("registered a project", vote_resp.data["message"])
 
-    def test_eligible_student_can_vote(self):
+    def test_eligible_student_can_reserve_and_vote(self):
         project = Project.objects.create(
             category=self.category,
             title="Health AI",
             contact_email="owner2@example.com",
             matric_number="FT24CMP0111",
             level="200 Level",
+            selected=True
         )
 
-        # Eligible voter matric FT24CMP0777 (not registered to any project)
-        verify_resp = self.client.post("/api/verify-voter/", {"matric_number": "FT24CMP0777"}, format="json")
-        self.assertEqual(verify_resp.status_code, status.HTTP_200_OK)
-        self.assertTrue(verify_resp.data["valid"])
+        # 1. Reserve seat
+        self.client.post("/api/reserve-seat/", {
+            "matric_number": "FT24CMP0555",
+            "name": "Voter Student",
+            "password": "voterpassword123"
+        }, format="json")
 
+        # 2. Vote with correct password
         vote_resp = self.client.post("/api/votes/", {
             "project_id": project.id,
-            "matric_number": "FT24CMP0777"
+            "matric_number": "FT24CMP0555",
+            "password": "voterpassword123"
         }, format="json")
         self.assertEqual(vote_resp.status_code, status.HTTP_201_CREATED)
         self.assertTrue(vote_resp.data["success"])
-

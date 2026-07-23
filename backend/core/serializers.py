@@ -1,6 +1,6 @@
 import re
 from rest_framework import serializers
-from .models import Category, Project
+from .models import Category, Project, Voter
 
 MATRIC_REGEX = re.compile(r'^(?:FT\d{2}[A-Z]{3,4}\d{3,5}|[A-Z]{2,5}/\d{4}/\d{3,5}|[A-Z0-9]{7,15})$', re.IGNORECASE)
 
@@ -141,3 +141,33 @@ class ProjectCreateSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError("Invalid matric number format. Expected format e.g. FT24CMP0123")
             return clean_val
         return value
+
+
+class VoterReservationSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True, required=True, min_length=4)
+    name = serializers.CharField(required=True, allow_blank=False)
+
+    class Meta:
+        model = Voter
+        fields = ['matric_number', 'name', 'password', 'created_at']
+
+    def validate_matric_number(self, value):
+        if value:
+            clean_val = value.strip().upper()
+            if not MATRIC_REGEX.match(clean_val):
+                raise serializers.ValidationError("Invalid matric number format. Expected format e.g. FT24CMP0123")
+            return clean_val
+        raise serializers.ValidationError("Matriculation number is required.")
+
+
+class VoterVerificationSerializer(serializers.Serializer):
+    matric_number = serializers.CharField(required=True)
+    password = serializers.CharField(required=True, write_only=True)
+
+    def validate_matric_number(self, value):
+        if value:
+            clean_val = value.strip().upper()
+            if not MATRIC_REGEX.match(clean_val):
+                raise serializers.ValidationError("Invalid matric number format. Expected format e.g. FT24CMP0123")
+            return clean_val
+        raise serializers.ValidationError("Matriculation number is required.")

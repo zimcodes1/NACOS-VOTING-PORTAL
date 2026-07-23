@@ -63,19 +63,16 @@ export const Navbar: React.FC = () => {
         </nav>
 
         {/* Right Action Buttons */}
-        <div className="hidden sm:flex items-center gap-3">
+        <Link to="/reserve" className="hidden sm:flex items-center gap-3">
           <Button
             variant="primary"
             size="sm"
+            className="py-2.5"
             leftIcon={<Vote className="w-4 h-4" />}
-            onClick={() => {
-              const el = document.getElementById("projects-grid");
-              if (el) el.scrollIntoView({ behavior: "smooth" });
-            }}
           >
-            Vote Now
+            Reserve Seat
           </Button>
-        </div>
+        </Link>
 
         {/* Mobile Hamburger Button */}
         <button
@@ -125,20 +122,19 @@ export const Navbar: React.FC = () => {
             </a>
           </nav>
 
-          <div className="pt-2 border-t border-border flex flex-col gap-2">
+          <Link to="/reserve" className="pt-2 border-t border-border flex flex-col gap-2">
             <Button
               variant="primary"
               fullWidth
               leftIcon={<Vote className="w-4 h-4" />}
               onClick={() => {
                 setMobileMenuOpen(false);
-                const el = document.getElementById("projects-grid");
-                if (el) el.scrollIntoView({ behavior: "smooth" });
               }}
+              className="py-2.5"
             >
-              Cast Vote
+              Reserve Seat
             </Button>
-          </div>
+          </Link>
         </div>
       )}
     </header>

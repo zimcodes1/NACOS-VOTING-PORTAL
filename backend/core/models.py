@@ -1,5 +1,6 @@
 from decimal import Decimal
 from django.db import models
+from django.contrib.auth.hashers import make_password, check_password
 
 
 class Category(models.Model):
@@ -113,8 +114,18 @@ class Project(models.Model):
 class Voter(models.Model):
     matric_number = models.CharField(max_length=50, primary_key=True)
     name = models.CharField(max_length=255, blank=True, default='')
+    password_hash = models.CharField(max_length=255, blank=True, default='')
     device_fingerprint = models.CharField(max_length=255, blank=True, default='')
     created_at = models.DateTimeField(auto_now_add=True)
+
+    def set_password(self, raw_password):
+        if raw_password:
+            self.password_hash = make_password(raw_password)
+
+    def check_password(self, raw_password):
+        if not self.password_hash:
+            return False
+        return check_password(raw_password, self.password_hash)
 
     def save(self, *args, **kwargs):
         if self.matric_number:
@@ -122,7 +133,7 @@ class Voter(models.Model):
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return self.matric_number
+        return f"{self.matric_number} ({self.name})" if self.name else self.matric_number
 
 
 class Vote(models.Model):
