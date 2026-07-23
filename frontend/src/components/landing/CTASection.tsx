@@ -1,7 +1,7 @@
 import React from "react";
 import { Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
-import { BarChart3, Ticket, Sparkles, ArrowRight, Clock, ShieldCheck, AlertCircle } from "lucide-react";
+import { BarChart3, Ticket, Sparkles, ArrowRight, Clock, AlertCircle } from "lucide-react";
 import { Button, Badge } from "../ui";
 import { useCountdown, RESERVATION_DEADLINE_TEXT } from "../../hooks/useCountdown";
 
