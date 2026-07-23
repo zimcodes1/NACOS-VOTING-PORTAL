@@ -14,7 +14,9 @@ import { Route as SplatRouteImport } from './routes/$'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as HomeRouteImport } from './routes/home'
 import { Route as RegisterRouteImport } from './routes/register'
+import { Route as ReserveRouteImport } from './routes/reserve'
 import { Route as ResultsRouteImport } from './routes/results'
+import { Route as WaitlistRouteImport } from './routes/waitlist'
 import { Route as HomeIndexRouteImport } from './routes/home/index'
 import { Route as HomeJudgeRouteImport } from './routes/home/judge'
 import { Route as HomeJudgeLoginRouteImport } from './routes/home/judge-login'
@@ -46,9 +48,19 @@ const RegisterRoute = RegisterRouteImport.update({
   path: '/register',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ReserveRoute = ReserveRouteImport.update({
+  id: '/reserve',
+  path: '/reserve',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ResultsRoute = ResultsRouteImport.update({
   id: '/results',
   path: '/results',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WaitlistRoute = WaitlistRouteImport.update({
+  id: '/waitlist',
+  path: '/waitlist',
   getParentRoute: () => rootRouteImport,
 } as any)
 const HomeIndexRoute = HomeIndexRouteImport.update({
@@ -83,7 +95,9 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof DashboardRoute
   '/home': typeof HomeRouteWithChildren
   '/register': typeof RegisterRoute
+  '/reserve': typeof ReserveRoute
   '/results': typeof ResultsRoute
+  '/waitlist': typeof WaitlistRoute
   '/home/judge': typeof HomeJudgeRouteWithChildren
   '/home/judge-login': typeof HomeJudgeLoginRoute
   '/home/': typeof HomeIndexRoute
@@ -95,7 +109,9 @@ export interface FileRoutesByTo {
   '/$': typeof SplatRoute
   '/dashboard': typeof DashboardRoute
   '/register': typeof RegisterRoute
+  '/reserve': typeof ReserveRoute
   '/results': typeof ResultsRoute
+  '/waitlist': typeof WaitlistRoute
   '/home/judge-login': typeof HomeJudgeLoginRoute
   '/home': typeof HomeIndexRoute
   '/home/judge/score': typeof HomeJudgeScoreRoute
@@ -108,7 +124,9 @@ export interface FileRoutesById {
   '/dashboard': typeof DashboardRoute
   '/home': typeof HomeRouteWithChildren
   '/register': typeof RegisterRoute
+  '/reserve': typeof ReserveRoute
   '/results': typeof ResultsRoute
+  '/waitlist': typeof WaitlistRoute
   '/home/judge': typeof HomeJudgeRouteWithChildren
   '/home/judge-login': typeof HomeJudgeLoginRoute
   '/home/': typeof HomeIndexRoute
@@ -123,7 +141,9 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/home'
     | '/register'
+    | '/reserve'
     | '/results'
+    | '/waitlist'
     | '/home/judge'
     | '/home/judge-login'
     | '/home/'
@@ -135,7 +155,9 @@ export interface FileRouteTypes {
     | '/$'
     | '/dashboard'
     | '/register'
+    | '/reserve'
     | '/results'
+    | '/waitlist'
     | '/home/judge-login'
     | '/home'
     | '/home/judge/score'
@@ -147,7 +169,9 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/home'
     | '/register'
+    | '/reserve'
     | '/results'
+    | '/waitlist'
     | '/home/judge'
     | '/home/judge-login'
     | '/home/'
@@ -161,7 +185,9 @@ export interface RootRouteChildren {
   DashboardRoute: typeof DashboardRoute
   HomeRoute: typeof HomeRouteWithChildren
   RegisterRoute: typeof RegisterRoute
+  ReserveRoute: typeof ReserveRoute
   ResultsRoute: typeof ResultsRoute
+  WaitlistRoute: typeof WaitlistRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -201,11 +227,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RegisterRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/reserve': {
+      id: '/reserve'
+      path: '/reserve'
+      fullPath: '/reserve'
+      preLoaderRoute: typeof ReserveRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/results': {
       id: '/results'
       path: '/results'
       fullPath: '/results'
       preLoaderRoute: typeof ResultsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/waitlist': {
+      id: '/waitlist'
+      path: '/waitlist'
+      fullPath: '/waitlist'
+      preLoaderRoute: typeof WaitlistRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/home/': {
@@ -280,7 +320,9 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardRoute: DashboardRoute,
   HomeRoute: HomeRouteWithChildren,
   RegisterRoute: RegisterRoute,
+  ReserveRoute: ReserveRoute,
   ResultsRoute: ResultsRoute,
+  WaitlistRoute: WaitlistRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -117,15 +117,97 @@ class ProjectDetailAPIView(generics.RetrieveAPIView):
         ).select_related('category')
 
 
+class VoterReservationAPIView(APIView):
+    """
+    POST /api/reserve-seat/
+    Collects voter seat reservation data: matric_number, name, and password.
+    Stores password securely to verify voter identity across multiple devices.
+    Enforces project entrant restriction.
+    """
+    def post(self, request):
+        matric_number = request.data.get('matric_number', '')
+        name = request.data.get('name', '').strip()
+        password = request.data.get('password', '').strip()
+
+        if not matric_number or not name or not password:
+            return Response(
+                {"error": "Matriculation number, name, and password are all required for seat reservation."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        clean_matric = matric_number.strip().upper()
+        if not MATRIC_REGEX.match(clean_matric):
+            return Response(
+                {
+                    "error": "Invalid matric number format.",
+                    "message": "Expected format e.g. FT24CMP0123 or FT22CYS0001"
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Enforce Constraint: Project entrants cannot reserve/vote
+        if Project.objects.filter(matric_number__iexact=clean_matric).exists():
+            return Response(
+                {
+                    "error": "Reservation Restricted",
+                    "message": "Students who registered a project are not eligible to reserve a voting seat or vote."
+                },
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        try:
+            voter = Voter.objects.get(matric_number=clean_matric)
+            if voter.password_hash:
+                if voter.check_password(password):
+                    if name:
+                        voter.name = name
+                        voter.save()
+                    return Response({
+                        "success": True,
+                        "matric_number": voter.matric_number,
+                        "name": voter.name,
+                        "message": "Reservation verified. You can now use your password to verify votes on any device."
+                    }, status=status.HTTP_200_OK)
+                else:
+                    return Response(
+                        {
+                            "error": "Password Conflict",
+                            "message": "This matriculation number has already set a reservation passcode. The provided password is incorrect."
+                        },
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+            else:
+                voter.name = name
+                voter.set_password(password)
+                voter.save()
+                return Response({
+                    "success": True,
+                    "matric_number": voter.matric_number,
+                    "name": voter.name,
+                    "message": "Seat reservation confirmed and passcode saved."
+                }, status=status.HTTP_200_OK)
+        except Voter.DoesNotExist:
+            voter = Voter(matric_number=clean_matric, name=name)
+            voter.set_password(password)
+            voter.save()
+            return Response({
+                "success": True,
+                "matric_number": voter.matric_number,
+                "name": voter.name,
+                "message": "Seat reservation confirmed successfully."
+            }, status=status.HTTP_201_CREATED)
+
+
 class VerifyVoterAPIView(APIView):
     """
     POST /api/verify-voter/
-    Validates student matriculation number format (e.g. FT24CMP0123)
-    and registers/verifies voter.
+    Validates student matriculation number and password for voter authentication.
     Restricts voting if matric number is registered to a project.
     """
     def post(self, request):
         matric_number = request.data.get('matric_number', '')
+        password = request.data.get('password', '').strip()
+
         if not matric_number:
             return Response(
                 {"valid": False, "error": "Matriculation number is required."},
@@ -154,23 +236,66 @@ class VerifyVoterAPIView(APIView):
                 status=status.HTTP_403_FORBIDDEN
             )
 
-        voter, created = Voter.objects.get_or_create(matric_number=clean_matric)
+        try:
+            voter = Voter.objects.get(matric_number=clean_matric)
+            if not voter.password_hash:
+                if password:
+                    voter.set_password(password)
+                    voter.save()
+                return Response({
+                    "valid": True,
+                    "matric_number": voter.matric_number,
+                    "name": voter.name,
+                    "message": "Voter verified successfully."
+                }, status=status.HTTP_200_OK)
 
-        return Response({
-            "valid": True,
-            "matric_number": voter.matric_number,
-            "message": "Voter verified successfully."
-        }, status=status.HTTP_200_OK)
+            if not password:
+                return Response(
+                    {
+                        "valid": False,
+                        "error": "Passcode Required",
+                        "message": "Please enter your reservation passcode to verify your voter identity."
+                    },
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            if voter.check_password(password):
+                return Response({
+                    "valid": True,
+                    "matric_number": voter.matric_number,
+                    "name": voter.name,
+                    "message": "Voter verified successfully."
+                }, status=status.HTTP_200_OK)
+            else:
+                return Response(
+                    {
+                        "valid": False,
+                        "error": "Incorrect Passcode",
+                        "message": "The passcode entered does not match the reservation password for this matriculation number."
+                    },
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        except Voter.DoesNotExist:
+            return Response(
+                {
+                    "valid": False,
+                    "error": "No Reservation Found",
+                    "message": "No seat reservation found for this matriculation number. Please reserve your seat first to create your voting passcode."
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
 
 class VoteCreateAPIView(APIView):
     """
     POST /api/votes/
-    Accepts matric_number and project_id to cast a vote.
-    Checks if category voting is open, enforces project entrant restriction, and 1 vote per category per voter.
+    Accepts matric_number, password, and project_id to cast a vote.
+    Checks if category voting is open, verifies passcode authentication,
+    enforces project entrant restriction, and 1 vote per category per voter.
     """
     def post(self, request):
         matric_number = request.data.get('matric_number', '')
+        password = request.data.get('password', '').strip()
         project_id = request.data.get('project_id')
 
         if not matric_number or not project_id:
@@ -194,6 +319,30 @@ class VoteCreateAPIView(APIView):
                     "message": "Students who registered a project are not eligible to vote."
                 },
                 status=status.HTTP_403_FORBIDDEN
+            )
+
+        # Verify Voter Passcode Authentication
+        try:
+            voter = Voter.objects.get(matric_number=clean_matric)
+            if voter.password_hash:
+                if not password or not voter.check_password(password):
+                    return Response(
+                        {
+                            "error": "Authentication Failed",
+                            "message": "Incorrect passcode for this matriculation number."
+                        },
+                        status=status.HTTP_401_UNAUTHORIZED
+                    )
+            elif password:
+                voter.set_password(password)
+                voter.save()
+        except Voter.DoesNotExist:
+            return Response(
+                {
+                    "error": "Reservation Required",
+                    "message": "No seat reservation found for this matric number. Please reserve your seat to create your voting passcode."
+                },
+                status=status.HTTP_400_BAD_REQUEST
             )
 
         try:

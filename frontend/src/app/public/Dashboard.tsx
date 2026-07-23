@@ -6,6 +6,7 @@ import { INITIAL_VOTER_STATE } from "../../constants/dummy";
 import { fetchCategories, fetchProjects, castVote, verifyVoter } from "../../api/dashboardAPI";
 import Preloader from "../../components/ui/Preloader";
 import { toast } from "../../components/ui";
+import { voterSession } from "../../utils/voterSession";
 
 const VOTER_STORAGE_KEY = "nacos_voter_state_v1";
 const MATRIC_REGEX = /^(?:FT\d{2}[A-Z]{3,4}\d{3,5}|[A-Z]{2,5}\/\d{4}\/\d{3,5}|[A-Z0-9]{7,15})$/i;
@@ -49,24 +50,40 @@ export const DashboardContainer: React.FC = () => {
         return INITIAL_VOTER_STATE;
     });
 
+    // Sync voter state with voterSession
     useEffect(() => {
-        try {
-            localStorage.setItem(VOTER_STORAGE_KEY, JSON.stringify(voterState));
-        } catch (e) {
-            console.warn("Unable to save voter state to localStorage", e);
-        }
-    }, [voterState]);
+        const syncSession = () => {
+            const voter = voterSession.getVerifiedVoter();
+            if (voter) {
+                setVoterState((prev) => ({
+                    ...prev,
+                    matricNumber: voter.matric_number,
+                    isVerified: true,
+                }));
+            }
+        };
+
+        syncSession();
+        window.addEventListener("voter-session-changed", syncSession);
+        return () => window.removeEventListener("voter-session-changed", syncSession);
+    }, []);
 
     const handleVerifyMatric = async (
-        matricNumber: string
+        matricNumber: string,
+        password?: string
     ): Promise<{ valid: boolean; error?: string }> => {
         const clean = matricNumber.trim().toUpperCase();
         if (!MATRIC_REGEX.test(clean)) {
             return { valid: false, error: "Invalid matric number format. E.g., FT24CMP0123" };
         }
 
-        const res = await verifyVoter(clean);
+        const res = await verifyVoter(clean, password);
         if (res.valid) {
+            voterSession.setVerifiedVoter({
+                matric_number: res.matric_number || clean,
+                name: res.name || "Verified Voter",
+                passcode: password,
+            });
             setVoterState((prev) => ({
                 ...prev,
                 matricNumber: clean,
@@ -79,6 +96,7 @@ export const DashboardContainer: React.FC = () => {
     };
 
     const handleClearMatric = () => {
+        voterSession.clearVerifiedVoter();
         setVoterState({
             matricNumber: null,
             isVerified: false,
@@ -88,8 +106,8 @@ export const DashboardContainer: React.FC = () => {
 
     // TanStack Mutation for voting
     const voteMutation = useMutation({
-        mutationFn: ({ project, matricNumber }: { project: Project; matricNumber: string }) =>
-            castVote(project.id, matricNumber),
+        mutationFn: ({ project, matricNumber, password }: { project: Project; matricNumber: string; password?: string }) =>
+            castVote(project.id, matricNumber, password),
         onSuccess: (res, { project }) => {
             if (!res.success) {
                 if (res.isConflict) {
@@ -119,7 +137,7 @@ export const DashboardContainer: React.FC = () => {
         },
     });
 
-    const handleVote = async (targetProject: Project, matricNumber: string): Promise<boolean> => {
+    const handleVote = async (targetProject: Project, matricNumber: string, password?: string): Promise<boolean> => {
         if (voterState.votedCategoryIds.includes(targetProject.category_id)) {
             toast.warning("Category Vote Limit Reached", {
                 description: `You have already voted in ${targetProject.category_name}.`,
@@ -127,8 +145,10 @@ export const DashboardContainer: React.FC = () => {
             return false;
         }
 
+        const currentPass = password || voterSession.getVerifiedVoter()?.passcode;
+
         try {
-            const res = await voteMutation.mutateAsync({ project: targetProject, matricNumber });
+            const res = await voteMutation.mutateAsync({ project: targetProject, matricNumber, password: currentPass });
             if (!res.success) {
                 toast.error("Unable to Cast Vote", {
                     description: res.error || "Failed to submit vote.",

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useRouterState, Link } from "@tanstack/react-router";
 import {
@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { cn } from "../../utils/cn";
 import { judgeAuthStore } from "../../utils/judgeAuthStore";
+import { voterSession, type VerifiedVoter } from "../../utils/voterSession";
 import { logoutJudge } from "../../api/judgingAPI";
 
 export interface SideNavProps {
@@ -36,6 +37,22 @@ export const SideNav: React.FC<SideNavProps> = ({
 		controlledIsCollapsed !== undefined
 			? controlledIsCollapsed
 			: localIsCollapsed;
+
+	const [verifiedVoter, setVerifiedVoter] = useState<VerifiedVoter | null>(() =>
+		voterSession.getVerifiedVoter()
+	);
+
+	useEffect(() => {
+		const syncVoter = () => {
+			setVerifiedVoter(voterSession.getVerifiedVoter());
+		};
+		window.addEventListener("voter-session-changed", syncVoter);
+		window.addEventListener("storage", syncVoter);
+		return () => {
+			window.removeEventListener("voter-session-changed", syncVoter);
+			window.removeEventListener("storage", syncVoter);
+		};
+	}, []);
 
 	const handleToggle = () => {
 		if (onToggleCollapse) {
@@ -165,7 +182,7 @@ export const SideNav: React.FC<SideNavProps> = ({
 						link.href === "/home"
 							? currentPath === "/home" || currentPath === "/home/"
 							: currentPath === link.href ||
-								currentPath.startsWith(link.href + "/");
+							currentPath.startsWith(link.href + "/");
 
 					return (
 						<Link
@@ -214,8 +231,8 @@ export const SideNav: React.FC<SideNavProps> = ({
 					);
 				})}
 			</div>
-			{/* User Section (at the bottom) */}
-			{isLoggedIn && judge && (
+			{/* User Section (at the bottom): Judge OR Verified Voter */}
+			{isLoggedIn && judge ? (
 				<div
 					className={cn(
 						"pt-4 border-t border-border/80 flex flex-col gap-3",
@@ -266,7 +283,49 @@ export const SideNav: React.FC<SideNavProps> = ({
 						{!collapsed && <span>Logout</span>}
 					</button>
 				</div>
-			)}
+			) : verifiedVoter ? (
+				<div
+					className={cn(
+						"pt-4 border-t border-border/80 flex flex-col gap-3",
+						collapsed ? "items-center" : "",
+					)}
+				>
+					<div
+						className={cn(
+							"flex items-center gap-2.5 min-w-0",
+							collapsed && "justify-center",
+						)}
+					>
+						<div className="w-8 h-8 rounded-full bg-gradient-to-tr from-primary via-cyan-500 to-emerald-400 text-white font-black text-xs border border-white/20 shadow-xs flex items-center justify-center shrink-0 uppercase">
+							{voterSession.getVoterInitial(verifiedVoter.name)}
+						</div>
+						{!collapsed && (
+							<div className="truncate min-w-0">
+								<div className="text-xs font-black text-navy truncate leading-none">
+									{verifiedVoter.name || "Verified Voter"}
+								</div>
+								<div className="text-[10px] text-primary font-mono font-bold truncate mt-0.5 leading-none">
+									{verifiedVoter.matric_number}
+								</div>
+							</div>
+						)}
+					</div>
+					<button
+						type="button"
+						onClick={() => {
+							voterSession.clearVerifiedVoter();
+						}}
+						className={cn(
+							"flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-red-600 hover:text-red-700 hover:bg-red-500/10 transition-all cursor-pointer w-full text-left",
+							collapsed && "justify-center px-0",
+						)}
+						title="Clear voter session"
+					>
+						<LogOut className="w-4 h-4 shrink-0 text-red-500" />
+						{!collapsed && <span>Logout</span>}
+					</button>
+				</div>
+			) : null}
 		</div>
 	);
 

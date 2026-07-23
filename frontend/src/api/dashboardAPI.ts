@@ -81,32 +81,59 @@ export async function fetchProjectById(id: string | number): Promise<Project | n
 }
 
 /**
- * Stage 4 API: POST /api/verify-voter/
- * Validates matriculation number with backend voter database.
+ * Stage 4 API: POST /api/reserve-seat/
+ * Submits voter seat reservation with matric_number, name, and password passcode.
  */
-export async function verifyVoter(matricNumber: string): Promise<{ valid: boolean; message?: string; error?: string }> {
+export async function reserveSeat(payload: {
+  matric_number: string;
+  name: string;
+  password: string;
+}): Promise<{ success: boolean; message?: string; error?: string; matric_number?: string; name?: string }> {
   try {
-    const data = await apiCall<{ valid: boolean; message?: string; error?: string }>({
+    const data = await apiCall<{ success: boolean; message?: string; error?: string; matric_number?: string; name?: string }>({
+      url: "reserve-seat/",
+      method: "POST",
+      data: payload,
+    });
+    return { ...data, success: data?.success ?? true };
+  } catch (error: any) {
+    const errData = error.response?.data;
+    const errorMsg = errData?.message || errData?.error || "Failed to submit seat reservation.";
+    return { success: false, error: errorMsg };
+  }
+}
+
+/**
+ * Stage 4 API: POST /api/verify-voter/
+ * Validates matriculation number and password with backend voter database.
+ */
+export async function verifyVoter(
+  matricNumber: string,
+  password?: string
+): Promise<{ valid: boolean; message?: string; error?: string; matric_number?: string; name?: string }> {
+  try {
+    const data = await apiCall<{ valid: boolean; message?: string; error?: string; matric_number?: string; name?: string }>({
       url: "verify-voter/",
       method: "POST",
-      data: { matric_number: matricNumber },
+      data: { matric_number: matricNumber, password: password || "" },
     });
     return data;
   } catch (error: any) {
     const errData = error.response?.data;
-    const errorMsg = errData?.message || errData?.error || "Invalid matric number format.";
+    const errorMsg = errData?.message || errData?.error || "Invalid matric number or passcode.";
     return { valid: false, error: errorMsg };
   }
 }
 
 /**
  * Stage 4 API: POST /api/votes/
- * Casts a vote for a project with a voter's matric number.
+ * Casts a vote for a project with a voter's matric number and password passcode.
  * Catches 409 Conflict if voter already voted in category.
  */
 export async function castVote(
   projectId: string | number,
-  matricNumber: string
+  matricNumber: string,
+  password?: string
 ): Promise<{ success: boolean; message?: string; error?: string; isConflict?: boolean; vote_count?: number }> {
   try {
     const data = await apiCall<{ success: boolean; message?: string; vote_count?: number }>({
@@ -115,6 +142,7 @@ export async function castVote(
       data: {
         project_id: projectId,
         matric_number: matricNumber,
+        password: password || "",
       },
     });
     return { ...data, success: data?.success ?? true };

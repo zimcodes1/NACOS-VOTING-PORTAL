@@ -92,8 +92,8 @@ export interface DashboardProps {
   onCategoryChange: (categoryId: string) => void;
   onTrackChange: (track: ExhibitionTrack) => void;
   onSortChange: (sortBy: "popular" | "newest" | "title") => void;
-  onVote: (project: Project, matricNumber: string) => Promise<boolean> | boolean;
-  onVerifyMatric: (matricNumber: string) => Promise<{ valid: boolean; error?: string }>;
+  onVote: (project: Project, matricNumber: string, password?: string) => Promise<boolean> | boolean;
+  onVerifyMatric: (matricNumber: string, password?: string) => Promise<{ valid: boolean; error?: string }>;
   onClearMatric: () => void;
 }
 
