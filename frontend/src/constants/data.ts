@@ -15,6 +15,7 @@ import {
     Zap,
     Flame,
     Star,
+    Volleyball,
 } from "lucide-react";
 
 export const EXHIBITION_CATEGORIES: Category[] = [
@@ -191,9 +192,8 @@ export const events = [
             day: "Wednesday",
             date: "5th August",
             title: "Sports & Games Day",
-            description:
-                "E-sports tournaments, FIFA & Tekken battles, outdoor football matches, track athletics, and recreational games.",
-            icon: Gamepad2,
+            description: "The highly anticipated HOD Cup football tournament kicks off alongside other exciting field and recreational games.",
+            icon: Volleyball,
             isSpotlight: false,
             tag: "Day 3",
         },

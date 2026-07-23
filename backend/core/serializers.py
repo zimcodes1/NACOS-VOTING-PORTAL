@@ -56,6 +56,7 @@ class ProjectListSerializer(serializers.ModelSerializer):
             'registration_status',
             'vote_count',
             'featured',
+            'selected',
             'tags',
             'created_at',
         ]
@@ -92,6 +93,7 @@ class ProjectDetailSerializer(serializers.ModelSerializer):
             'registration_status',
             'vote_count',
             'featured',
+            'selected',
             'tags',
             'created_at',
         ]
@@ -127,6 +129,7 @@ class ProjectCreateSerializer(serializers.ModelSerializer):
             'level',
             'show_contact_publicly',
             'registration_status',
+            'selected',
             'tags',
             'created_at',
         ]

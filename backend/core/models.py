@@ -67,6 +67,7 @@ class Project(models.Model):
         default=RegistrationStatus.CONFIRMED,
     )
     featured = models.BooleanField(default=False)
+    selected = models.BooleanField(default=False)
     tags = models.JSONField(default=list, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
