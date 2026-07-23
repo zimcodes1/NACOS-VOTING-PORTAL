@@ -36,6 +36,7 @@ export async function fetchProjects(params?: {
   status?: string;
   track?: string;
   featured?: string;
+  selected?: string;
 }): Promise<Project[]> {
   try {
     const data = await apiCall<any[]>({

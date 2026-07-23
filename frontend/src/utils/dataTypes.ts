@@ -47,6 +47,7 @@ export interface Project {
   vote_count: number;
   created_at: string;
   featured?: boolean;
+  selected?: boolean;
   tags?: string[];
 }
 

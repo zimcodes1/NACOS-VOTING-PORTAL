@@ -42,9 +42,9 @@ class CategoryListAPIView(generics.ListAPIView):
 
 class ProjectListAPIView(generics.ListAPIView):
     """
-    GET /api/projects/?category=&search=&status=&track=
-    List projects filtered by category, search term, or track.
-    Defaults to confirmed registration status for public discovery.
+    GET /api/projects/?category=&search=&status=&track=&featured=&selected=
+    List projects filtered by category, search term, track, featured, or selected.
+    Defaults to selected=True projects for public exhibition discovery.
     """
     serializer_class = ProjectListSerializer
 
@@ -53,14 +53,20 @@ class ProjectListAPIView(generics.ListAPIView):
             vote_count=Count('votes')
         ).select_related('category')
 
-        # Filter by registration status (default to confirmed for public discovery)
-        status_param = self.request.query_params.get('status')
+        # Filter by selected status (default to selected=True for public discovery; payments won't matter)
+        selected_param = self.request.query_params.get('selected')
         show_all = self.request.query_params.get('all', 'false').lower() == 'true'
+        status_param = self.request.query_params.get('status')
 
-        if status_param:
+        if selected_param is not None:
+            if selected_param.lower() == 'true':
+                queryset = queryset.filter(selected=True)
+            elif selected_param.lower() == 'false':
+                queryset = queryset.filter(selected=False)
+        elif not show_all and not status_param:
+            queryset = queryset.filter(selected=True)
+        elif status_param:
             queryset = queryset.filter(registration_status=status_param)
-        elif not show_all:
-            queryset = queryset.filter(registration_status=Project.RegistrationStatus.CONFIRMED)
 
         # Filter by Category (ID or Name)
         category_param = self.request.query_params.get('category')

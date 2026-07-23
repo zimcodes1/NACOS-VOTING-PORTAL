@@ -3,3 +3,4 @@ backend/.env
 backend/NACOS EVENT/
 frontend/yarn.lock
 backend/media/
+backend/staticfiles/
