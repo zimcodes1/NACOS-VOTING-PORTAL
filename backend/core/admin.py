@@ -11,9 +11,9 @@ class CategoryAdmin(admin.ModelAdmin):
 
 @admin.register(Project)
 class ProjectAdmin(admin.ModelAdmin):
-    list_display = ('id', 'title', 'category', 'registration_status', 'team_name', 'created_at')
-    list_filter = ('category', 'registration_status')
-    search_fields = ('title', 'description', 'team_name')
+    list_display = ('id', 'title', 'category', 'matric_number', 'level', 'registration_status', 'team_name', 'created_at')
+    list_filter = ('category', 'registration_status', 'level')
+    search_fields = ('title', 'description', 'team_name', 'matric_number', 'contact_name', 'contact_email')
 
 
 @admin.register(Voter)

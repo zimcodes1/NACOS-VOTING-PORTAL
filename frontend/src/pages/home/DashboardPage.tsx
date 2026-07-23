@@ -159,14 +159,22 @@ export const DashboardPage: React.FC<DashboardProps> = ({
                 }}
                 voterState={voterState}
                 selectedProjectToVote={targetProjectToVote}
-                onVerify={(matric) => {
-                    const isValid = onVerifyMatric(matric);
+                onVerify={async (matric) => {
+                    const res = await onVerifyMatric(matric);
+                    let isValid = false;
+                    let error: string | undefined;
+                    if (typeof res === "object") {
+                        isValid = res.valid;
+                        error = res.error;
+                    } else {
+                        isValid = Boolean(res);
+                    }
                     if (isValid) {
                         toast.success("Matric Verified", {
                             description: `Voter status activated for ${matric}.`,
                         });
                     }
-                    return isValid;
+                    return { valid: isValid, error };
                 }}
                 onConfirmVote={handleConfirmVoteSubmit}
                 onClearMatric={onClearMatric}

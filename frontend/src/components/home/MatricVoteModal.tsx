@@ -8,7 +8,7 @@ interface MatricVoteModalProps {
   onClose: () => void;
   voterState: VoterState;
   selectedProjectToVote?: Project | null;
-  onVerify: (matricNumber: string) => boolean;
+  onVerify: (matricNumber: string) => Promise<{ valid: boolean; error?: string }>;
   onConfirmVote: (project: Project, matricNumber: string) => void;
   onClearMatric: () => void;
 }
@@ -25,8 +25,9 @@ export const MatricVoteModal: React.FC<MatricVoteModalProps> = ({
     voterState.matricNumber || ""
   );
   const [errorText, setErrorText] = useState("");
+  const [isVerifying, setIsVerifying] = useState(false);
 
-  const handleVerifySubmit = (e: React.FormEvent) => {
+  const handleVerifySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorText("");
 
@@ -36,9 +37,22 @@ export const MatricVoteModal: React.FC<MatricVoteModalProps> = ({
       return;
     }
 
-    const isValid = onVerify(trimmed);
+    setIsVerifying(true);
+    const res = await onVerify(trimmed);
+    setIsVerifying(false);
+
+    let isValid = false;
+    let errorMsg = "Invalid matric number format. E.g., FT24CMP0123";
+
+    if (typeof res === "object") {
+      isValid = res.valid;
+      if (res.error) errorMsg = res.error;
+    } else {
+      isValid = res;
+    }
+
     if (!isValid) {
-      setErrorText("Invalid matric number format. E.g., FT24CMP0123");
+      setErrorText(errorMsg);
       return;
     }
 
@@ -136,6 +150,7 @@ export const MatricVoteModal: React.FC<MatricVoteModalProps> = ({
                 variant="primary"
                 size="md"
                 type="submit"
+                isLoading={isVerifying}
                 leftIcon={<ShieldCheck className="w-4 h-4" />}
               >
                 {selectedProjectToVote ? "Verify & Vote" : "Verify Matric"}

@@ -83,7 +83,8 @@ class ProjectListAPIView(generics.ListAPIView):
                 Q(description__icontains=search_query) |
                 Q(tagline__icontains=search_query) |
                 Q(team_name__icontains=search_query) |
-                Q(registration_code__icontains=search_query)
+                Q(registration_code__icontains=search_query) |
+                Q(matric_number__icontains=search_query)
             )
 
         return queryset.order_by('-vote_count', '-created_at')
@@ -107,6 +108,7 @@ class VerifyVoterAPIView(APIView):
     POST /api/verify-voter/
     Validates student matriculation number format (e.g. FT24CMP0123)
     and registers/verifies voter.
+    Restricts voting if matric number is registered to a project.
     """
     def post(self, request):
         matric_number = request.data.get('matric_number', '')
@@ -127,6 +129,17 @@ class VerifyVoterAPIView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
+        # Enforce Constraint: User cannot vote with a matric that registered a project
+        if Project.objects.filter(matric_number__iexact=clean_matric).exists():
+            return Response(
+                {
+                    "valid": False,
+                    "error": "Voting Restricted",
+                    "message": "Students who registered a project are not eligible to vote."
+                },
+                status=status.HTTP_403_FORBIDDEN
+            )
+
         voter, created = Voter.objects.get_or_create(matric_number=clean_matric)
 
         return Response({
@@ -140,7 +153,7 @@ class VoteCreateAPIView(APIView):
     """
     POST /api/votes/
     Accepts matric_number and project_id to cast a vote.
-    Checks if category voting is open, and enforces 1 vote per category per voter.
+    Checks if category voting is open, enforces project entrant restriction, and 1 vote per category per voter.
     """
     def post(self, request):
         matric_number = request.data.get('matric_number', '')
@@ -157,6 +170,16 @@ class VoteCreateAPIView(APIView):
             return Response(
                 {"error": "Invalid matric number format.", "message": "Expected e.g. FT24CMP0123"},
                 status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Enforce Constraint: User cannot vote with a matric that registered a project
+        if Project.objects.filter(matric_number__iexact=clean_matric).exists():
+            return Response(
+                {
+                    "error": "Voting Restricted",
+                    "message": "Students who registered a project are not eligible to vote."
+                },
+                status=status.HTTP_403_FORBIDDEN
             )
 
         try:

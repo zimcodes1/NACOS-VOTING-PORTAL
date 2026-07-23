@@ -53,6 +53,10 @@ export interface RegisterProjectPageProps {
   setContactEmail: (email: string) => void;
   contactPhone: string;
   setContactPhone: (phone: string) => void;
+  matricNumber: string;
+  setMatricNumber: (matric: string) => void;
+  level: string;
+  setLevel: (level: string) => void;
   showContactPublicly: boolean;
   setShowContactPublicly: (show: boolean) => void;
   isSubmitting: boolean;
@@ -110,6 +114,10 @@ export const RegisterProjectPage: React.FC<RegisterProjectPageProps> = ({
   setContactEmail,
   contactPhone,
   setContactPhone,
+  matricNumber,
+  setMatricNumber,
+  level,
+  setLevel,
   showContactPublicly,
   setShowContactPublicly,
   isSubmitting,
@@ -638,6 +646,39 @@ export const RegisterProjectPage: React.FC<RegisterProjectPageProps> = ({
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <Input
+                        label="Matriculation Number *"
+                        placeholder="e.g. FT24CMP0123"
+                        value={matricNumber}
+                        onChange={(e) => setMatricNumber(e.target.value)}
+                        helperText="Official student matric number"
+                      />
+
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-bold text-navy">
+                          Level *
+                        </label>
+                        <select
+                          value={level}
+                          onChange={(e) => setLevel(e.target.value)}
+                          className="w-full px-3.5 py-3 text-xs bg-background border border-border rounded-xl text-navy focus:outline-none focus:border-primary transition-all cursor-pointer shadow-xs"
+                        >
+                          <option value="">-- Select Level --</option>
+                          <option value="100 Level">100 Level</option>
+                          <option value="200 Level">200 Level</option>
+                          <option value="300 Level">300 Level</option>
+                          <option value="400 Level">400 Level</option>
+                          <option value="500 Level">500 Level</option>
+                          <option value="ND 1">ND 1</option>
+                          <option value="ND 2">ND 2</option>
+                          <option value="HND 1">HND 1</option>
+                          <option value="HND 2">HND 2</option>
+                          <option value="Postgraduate">Postgraduate</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <Input
                         label="Contact Email *"
                         type="email"
                         placeholder="e.g. lead@domain.com"
@@ -698,8 +739,16 @@ export const RegisterProjectPage: React.FC<RegisterProjectPageProps> = ({
                         <span className="font-bold text-navy">{title}</span>
                       </div>
                       <div className="flex items-center justify-between border-b border-border pb-2">
-                        <span className="text-text-muted">Team Name:</span>
+                        <span className="text-text-muted">Team / Applicant Name:</span>
                         <span className="font-bold text-navy">{teamName}</span>
+                      </div>
+                      <div className="flex items-center justify-between border-b border-border pb-2">
+                        <span className="text-text-muted">Matric Number:</span>
+                        <span className="font-mono font-bold text-navy">{matricNumber || "N/A"}</span>
+                      </div>
+                      <div className="flex items-center justify-between border-b border-border pb-2">
+                        <span className="text-text-muted">Level:</span>
+                        <span className="font-bold text-navy">{level || "N/A"}</span>
                       </div>
                       <div className="flex items-center justify-between">
                         <span className="text-text-muted">Lead Contact Email:</span>

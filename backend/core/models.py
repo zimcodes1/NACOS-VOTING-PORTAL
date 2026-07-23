@@ -58,6 +58,8 @@ class Project(models.Model):
     contact_name = models.CharField(max_length=255, blank=True, default='')
     contact_email = models.EmailField(blank=True, default='')
     contact_phone = models.CharField(max_length=50, blank=True, default='')
+    matric_number = models.CharField(max_length=50, blank=True, default='')
+    level = models.CharField(max_length=50, blank=True, default='')
     show_contact_publicly = models.BooleanField(default=True)
     registration_status = models.CharField(
         max_length=20,
@@ -69,6 +71,8 @@ class Project(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def save(self, *args, **kwargs):
+        if self.matric_number:
+            self.matric_number = self.matric_number.strip().upper()
         if self.category and not self.track:
             self.track = self.category.track
 

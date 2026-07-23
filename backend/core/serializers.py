@@ -1,5 +1,8 @@
+import re
 from rest_framework import serializers
 from .models import Category, Project
+
+MATRIC_REGEX = re.compile(r'^(?:FT\d{2}[A-Z]{3,4}\d{3,5}|[A-Z]{2,5}/\d{4}/\d{3,5}|[A-Z0-9]{7,15})$', re.IGNORECASE)
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -47,6 +50,8 @@ class ProjectListSerializer(serializers.ModelSerializer):
             'contact_name',
             'contact_email',
             'contact_phone',
+            'matric_number',
+            'level',
             'show_contact_publicly',
             'registration_status',
             'vote_count',
@@ -81,6 +86,8 @@ class ProjectDetailSerializer(serializers.ModelSerializer):
             'contact_name',
             'contact_email',
             'contact_phone',
+            'matric_number',
+            'level',
             'show_contact_publicly',
             'registration_status',
             'vote_count',
@@ -116,8 +123,18 @@ class ProjectCreateSerializer(serializers.ModelSerializer):
             'contact_name',
             'contact_email',
             'contact_phone',
+            'matric_number',
+            'level',
             'show_contact_publicly',
             'registration_status',
             'tags',
             'created_at',
         ]
+
+    def validate_matric_number(self, value):
+        if value:
+            clean_val = value.strip().upper()
+            if not MATRIC_REGEX.match(clean_val):
+                raise serializers.ValidationError("Invalid matric number format. Expected format e.g. FT24CMP0123")
+            return clean_val
+        return value

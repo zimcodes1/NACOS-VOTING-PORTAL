@@ -40,6 +40,8 @@ export default function Register() {
   const [contactName, setContactName] = useState<string>("");
   const [contactEmail, setContactEmail] = useState<string>("");
   const [contactPhone, setContactPhone] = useState<string>("");
+  const [matricNumber, setMatricNumber] = useState<string>("");
+  const [level, setLevel] = useState<string>("");
   const [showContactPublicly, setShowContactPublicly] = useState<boolean>(true);
 
   // Submission / Result State
@@ -86,6 +88,8 @@ export default function Register() {
     }
   };
 
+  const MATRIC_REGEX = /^(?:FT\d{2}[A-Z]{3,4}\d{3,5}|[A-Z]{2,5}\/\d{4}\/\d{3,5}|[A-Z0-9]{7,15})$/i;
+
   const handleNextStep = () => {
     if (currentStep === 1) {
       if (!categoryId) {
@@ -104,6 +108,18 @@ export default function Register() {
     } else if (currentStep === 3) {
       if (!teamName.trim() || !contactName.trim() || !contactEmail.trim()) {
         toast.warning("Please fill in your team and contact information.");
+        return;
+      }
+      if (!matricNumber.trim()) {
+        toast.warning("Please enter your matriculation number.");
+        return;
+      }
+      if (!MATRIC_REGEX.test(matricNumber.trim())) {
+        toast.warning("Invalid matriculation number format. E.g. FT24CMP0123");
+        return;
+      }
+      if (!level) {
+        toast.warning("Please select your academic level.");
         return;
       }
     }
@@ -135,6 +151,8 @@ export default function Register() {
       contact_name: contactName.trim(),
       contact_email: contactEmail.trim(),
       contact_phone: contactPhone.trim(),
+      matric_number: matricNumber.trim().toUpperCase(),
+      level: level.trim(),
       show_contact_publicly: showContactPublicly,
       tags,
     };
@@ -206,6 +224,8 @@ export default function Register() {
     setContactName(lookedUpProject.contact_name || "");
     setContactEmail(lookedUpProject.contact_email || "");
     setContactPhone(lookedUpProject.contact_phone || "");
+    setMatricNumber(lookedUpProject.matric_number || "");
+    setLevel(lookedUpProject.level || "");
     setShowContactPublicly(lookedUpProject.show_contact_publicly);
     setEditingProjectId(lookedUpProject.id);
     setWasEditing(true);
@@ -228,6 +248,8 @@ export default function Register() {
     setContactName("");
     setContactEmail("");
     setContactPhone("");
+    setMatricNumber("");
+    setLevel("");
     setShowContactPublicly(true);
     setEditingProjectId(null);
     setWasEditing(false);
@@ -268,6 +290,10 @@ export default function Register() {
       setContactEmail={setContactEmail}
       contactPhone={contactPhone}
       setContactPhone={setContactPhone}
+      matricNumber={matricNumber}
+      setMatricNumber={setMatricNumber}
+      level={level}
+      setLevel={setLevel}
       showContactPublicly={showContactPublicly}
       setShowContactPublicly={setShowContactPublicly}
       isSubmitting={isSubmitting}

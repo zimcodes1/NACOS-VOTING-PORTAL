@@ -40,6 +40,8 @@ export interface Project {
   contact_name: string;
   contact_email: string;
   contact_phone: string;
+  matric_number?: string;
+  level?: string;
   show_contact_publicly: boolean;
   registration_status: ProjectStatus;
   vote_count: number;
@@ -90,7 +92,7 @@ export interface DashboardProps {
   onTrackChange: (track: ExhibitionTrack) => void;
   onSortChange: (sortBy: "popular" | "newest" | "title") => void;
   onVote: (project: Project, matricNumber: string) => Promise<boolean> | boolean;
-  onVerifyMatric: (matricNumber: string) => boolean;
+  onVerifyMatric: (matricNumber: string) => Promise<{ valid: boolean; error?: string }>;
   onClearMatric: () => void;
 }
 

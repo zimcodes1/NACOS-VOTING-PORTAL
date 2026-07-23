@@ -3,8 +3,9 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { DashboardPage } from "../../pages/home/DashboardPage";
 import type { Project, Category, ExhibitionTrack, VoterState } from "../../utils/dataTypes";
 import { INITIAL_VOTER_STATE } from "../../constants/dummy";
-import { fetchCategories, fetchProjects, castVote } from "../../api/dashboardAPI";
+import { fetchCategories, fetchProjects, castVote, verifyVoter } from "../../api/dashboardAPI";
 import Preloader from "../../components/ui/Preloader";
+import { toast } from "../../components/ui";
 
 const VOTER_STORAGE_KEY = "nacos_voter_state_v1";
 const MATRIC_REGEX = /^(?:FT\d{2}[A-Z]{3,4}\d{3,5}|[A-Z]{2,5}\/\d{4}\/\d{3,5}|[A-Z0-9]{7,15})$/i;
@@ -56,19 +57,25 @@ export const DashboardContainer: React.FC = () => {
         }
     }, [voterState]);
 
-    const handleVerifyMatric = (matricNumber: string): boolean => {
+    const handleVerifyMatric = async (
+        matricNumber: string
+    ): Promise<{ valid: boolean; error?: string }> => {
         const clean = matricNumber.trim().toUpperCase();
-        const isValid = MATRIC_REGEX.test(clean);
+        if (!MATRIC_REGEX.test(clean)) {
+            return { valid: false, error: "Invalid matric number format. E.g., FT24CMP0123" };
+        }
 
-        if (isValid) {
+        const res = await verifyVoter(clean);
+        if (res.valid) {
             setVoterState((prev) => ({
                 ...prev,
                 matricNumber: clean,
                 isVerified: true,
             }));
-            return true;
+            return { valid: true };
+        } else {
+            return { valid: false, error: res.message || res.error || "Verification failed." };
         }
-        return false;
     };
 
     const handleClearMatric = () => {
@@ -114,14 +121,26 @@ export const DashboardContainer: React.FC = () => {
 
     const handleVote = async (targetProject: Project, matricNumber: string): Promise<boolean> => {
         if (voterState.votedCategoryIds.includes(targetProject.category_id)) {
+            toast.warning("Category Vote Limit Reached", {
+                description: `You have already voted in ${targetProject.category_name}.`,
+            });
             return false;
         }
 
         try {
             const res = await voteMutation.mutateAsync({ project: targetProject, matricNumber });
-            return res.success;
+            if (!res.success) {
+                toast.error("Unable to Cast Vote", {
+                    description: res.error || "Failed to submit vote.",
+                });
+                return false;
+            }
+            return true;
         } catch (error) {
             console.error("Vote API failed", error);
+            toast.error("Unable to Cast Vote", {
+                description: "A network or server error occurred.",
+            });
             return false;
         }
     };
