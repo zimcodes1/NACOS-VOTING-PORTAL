@@ -48,7 +48,7 @@ export const SideNav: React.FC<SideNavProps> = ({
 
   const isLoggedIn = judgeAuthStore.isLoggedIn();
   const judge = judgeAuthStore.getJudge();
-
+  console.log(judge?.image_url)
   const navLinks = [
     {
       href: "/home",

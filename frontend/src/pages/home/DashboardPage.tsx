@@ -95,8 +95,8 @@ export const DashboardPage: React.FC<DashboardProps> = ({
             >
                 {/* Top Exhibition Welcome Hero Banner */}
                 <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-navy to-primary-dark p-6 sm:p-8 text-white shadow-xl">
-                    <div className="absolute -right-10 -bottom-10 w-64 h-64 bg-primary/20 rounded-full blur-3xl pointer-events-none" />
-                    <div className="absolute right-20 top-0 w-48 h-48 bg-gold/20 rounded-full blur-2xl pointer-events-none" />
+                    <div className="absolute hidden sm:block -right-10 -bottom-10 w-64 h-64 bg-primary/20 rounded-full blur-3xl pointer-events-none" />
+                    <div className="absolute hidden sm:block right-20 top-0 w-48 h-48 bg-gold/20 rounded-full blur-2xl pointer-events-none" />
 
                     <div className="relative z-10 max-w-2xl space-y-3">
                         <div className="inline-flex items-center gap-2 px-3 py-2.5 rounded-full bg-white/10 border border-white/20 backdrop-blur-md text-xs font-semibold text-gold-light">

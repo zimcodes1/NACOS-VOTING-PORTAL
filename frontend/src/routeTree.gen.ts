@@ -12,14 +12,12 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SplatRouteImport } from './routes/$'
 import { Route as DashboardRouteImport } from './routes/dashboard'
-import { Route as DemoRouteImport } from './routes/demo'
 import { Route as HomeRouteImport } from './routes/home'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as ResultsRouteImport } from './routes/results'
 import { Route as HomeIndexRouteImport } from './routes/home/index'
 import { Route as HomeJudgeRouteImport } from './routes/home/judge'
 import { Route as HomeJudgeLoginRouteImport } from './routes/home/judge-login'
-import { Route as HomeResultsRouteImport } from './routes/home/results'
 import { Route as HomeJudgeIndexRouteImport } from './routes/home/judge/index'
 import { Route as HomeJudgeScoreRouteImport } from './routes/home/judge/score'
 
@@ -36,11 +34,6 @@ const SplatRoute = SplatRouteImport.update({
 const DashboardRoute = DashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DemoRoute = DemoRouteImport.update({
-  id: '/demo',
-  path: '/demo',
   getParentRoute: () => rootRouteImport,
 } as any)
 const HomeRoute = HomeRouteImport.update({
@@ -73,11 +66,6 @@ const HomeJudgeLoginRoute = HomeJudgeLoginRouteImport.update({
   path: '/judge-login',
   getParentRoute: () => HomeRoute,
 } as any)
-const HomeResultsRoute = HomeResultsRouteImport.update({
-  id: '/results',
-  path: '/results',
-  getParentRoute: () => HomeRoute,
-} as any)
 const HomeJudgeIndexRoute = HomeJudgeIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -93,13 +81,11 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/$': typeof SplatRoute
   '/dashboard': typeof DashboardRoute
-  '/demo': typeof DemoRoute
   '/home': typeof HomeRouteWithChildren
   '/register': typeof RegisterRoute
   '/results': typeof ResultsRoute
   '/home/judge': typeof HomeJudgeRouteWithChildren
   '/home/judge-login': typeof HomeJudgeLoginRoute
-  '/home/results': typeof HomeResultsRoute
   '/home/': typeof HomeIndexRoute
   '/home/judge/score': typeof HomeJudgeScoreRoute
   '/home/judge/': typeof HomeJudgeIndexRoute
@@ -108,11 +94,9 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/$': typeof SplatRoute
   '/dashboard': typeof DashboardRoute
-  '/demo': typeof DemoRoute
   '/register': typeof RegisterRoute
   '/results': typeof ResultsRoute
   '/home/judge-login': typeof HomeJudgeLoginRoute
-  '/home/results': typeof HomeResultsRoute
   '/home': typeof HomeIndexRoute
   '/home/judge/score': typeof HomeJudgeScoreRoute
   '/home/judge': typeof HomeJudgeIndexRoute
@@ -122,13 +106,11 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/$': typeof SplatRoute
   '/dashboard': typeof DashboardRoute
-  '/demo': typeof DemoRoute
   '/home': typeof HomeRouteWithChildren
   '/register': typeof RegisterRoute
   '/results': typeof ResultsRoute
   '/home/judge': typeof HomeJudgeRouteWithChildren
   '/home/judge-login': typeof HomeJudgeLoginRoute
-  '/home/results': typeof HomeResultsRoute
   '/home/': typeof HomeIndexRoute
   '/home/judge/score': typeof HomeJudgeScoreRoute
   '/home/judge/': typeof HomeJudgeIndexRoute
@@ -139,13 +121,11 @@ export interface FileRouteTypes {
     | '/'
     | '/$'
     | '/dashboard'
-    | '/demo'
     | '/home'
     | '/register'
     | '/results'
     | '/home/judge'
     | '/home/judge-login'
-    | '/home/results'
     | '/home/'
     | '/home/judge/score'
     | '/home/judge/'
@@ -154,11 +134,9 @@ export interface FileRouteTypes {
     | '/'
     | '/$'
     | '/dashboard'
-    | '/demo'
     | '/register'
     | '/results'
     | '/home/judge-login'
-    | '/home/results'
     | '/home'
     | '/home/judge/score'
     | '/home/judge'
@@ -167,13 +145,11 @@ export interface FileRouteTypes {
     | '/'
     | '/$'
     | '/dashboard'
-    | '/demo'
     | '/home'
     | '/register'
     | '/results'
     | '/home/judge'
     | '/home/judge-login'
-    | '/home/results'
     | '/home/'
     | '/home/judge/score'
     | '/home/judge/'
@@ -183,7 +159,6 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   SplatRoute: typeof SplatRoute
   DashboardRoute: typeof DashboardRoute
-  DemoRoute: typeof DemoRoute
   HomeRoute: typeof HomeRouteWithChildren
   RegisterRoute: typeof RegisterRoute
   ResultsRoute: typeof ResultsRoute
@@ -210,13 +185,6 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof DashboardRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/demo': {
-      id: '/demo'
-      path: '/demo'
-      fullPath: '/demo'
-      preLoaderRoute: typeof DemoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/home': {
@@ -261,13 +229,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof HomeJudgeLoginRouteImport
       parentRoute: typeof HomeRoute
     }
-    '/home/results': {
-      id: '/home/results'
-      path: '/results'
-      fullPath: '/home/results'
-      preLoaderRoute: typeof HomeResultsRouteImport
-      parentRoute: typeof HomeRoute
-    }
     '/home/judge/': {
       id: '/home/judge/'
       path: '/'
@@ -302,14 +263,12 @@ const HomeJudgeRouteWithChildren = HomeJudgeRoute._addFileChildren(
 interface HomeRouteChildren {
   HomeJudgeRoute: typeof HomeJudgeRouteWithChildren
   HomeJudgeLoginRoute: typeof HomeJudgeLoginRoute
-  HomeResultsRoute: typeof HomeResultsRoute
   HomeIndexRoute: typeof HomeIndexRoute
 }
 
 const HomeRouteChildren: HomeRouteChildren = {
   HomeJudgeRoute: HomeJudgeRouteWithChildren,
   HomeJudgeLoginRoute: HomeJudgeLoginRoute,
-  HomeResultsRoute: HomeResultsRoute,
   HomeIndexRoute: HomeIndexRoute,
 }
 
@@ -319,7 +278,6 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   SplatRoute: SplatRoute,
   DashboardRoute: DashboardRoute,
-  DemoRoute: DemoRoute,
   HomeRoute: HomeRouteWithChildren,
   RegisterRoute: RegisterRoute,
   ResultsRoute: ResultsRoute,

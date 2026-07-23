@@ -3,4 +3,7 @@ import JudgeLogin from '../../app/judges/JudgeLogin'
 
 export const Route = createFileRoute('/home/judge-login')({
   component: JudgeLogin,
+  beforeLoad: () => {
+    document.title = "Judge Login | NACOS Software Exhibition"
+  }
 })
