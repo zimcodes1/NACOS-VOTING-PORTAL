@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Modal, Input, Button } from "../ui";
 import type { VoterState, Project } from "../../utils/dataTypes";
-import { ShieldCheck, Lock, ThumbsUp, KeyRound, LogOut, Ticket } from "lucide-react";
+import { ShieldCheck, Lock, ThumbsUp, KeyRound, LogOut, Ticket, Eye, EyeOff } from "lucide-react";
 import { verifyVoter } from "../../api/dashboardAPI";
 import { voterSession, type VerifiedVoter } from "../../utils/voterSession";
 import { Link } from "@tanstack/react-router";
@@ -26,6 +26,7 @@ export const MatricVoteModal: React.FC<MatricVoteModalProps> = ({
 
   const [matricInput, setMatricInput] = useState(() => activeVoter?.matric_number || "");
   const [passwordInput, setPasswordInput] = useState(() => activeVoter?.passcode || "");
+  const [showPassword, setShowPassword] = useState(false);
   const [errorText, setErrorText] = useState("");
   const [isVerifying, setIsVerifying] = useState(false);
 
@@ -213,12 +214,23 @@ export const MatricVoteModal: React.FC<MatricVoteModalProps> = ({
 
             <Input
               label="Voting Passcode"
-              type="password"
+              type={showPassword ? "text" : "password"}
               placeholder="Enter passcode"
               value={passwordInput}
               onChange={(e) => setPasswordInput(e.target.value)}
               helperText="Enter your seat reservation passcode"
               leftIcon={<KeyRound className="w-4 h-4 text-text-muted" />}
+              rightIcon={
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="p-1 text-text-muted hover:text-navy transition-colors cursor-pointer"
+                  tabIndex={-1}
+                  aria-label={showPassword ? "Hide passcode" : "Show passcode"}
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              }
             />
 
             <div className="pt-1 flex items-center justify-between text-xs">
