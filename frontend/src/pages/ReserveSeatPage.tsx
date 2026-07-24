@@ -13,6 +13,9 @@ import {
   KeyRound,
   Clock,
   AlertCircle,
+  AlertTriangle,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { Input, Button, Card, ToastContainer, toast } from "../components/ui";
 import { reserveSeat, verifyVoter } from "../api/dashboardAPI";
@@ -30,6 +33,8 @@ export const ReserveSeatPage: React.FC = () => {
   const [matricNumber, setMatricNumber] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -362,25 +367,58 @@ export const ReserveSeatPage: React.FC = () => {
 
                   <Input
                     label={isExistingMode ? "Voting Passcode" : "Create Voting Passcode"}
-                    type="password"
+                    type={showPassword ? "text" : "password"}
                     placeholder="Enter passcode"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     helperText={isExistingMode ? undefined : "Protects your vote across multiple devices"}
                     leftIcon={<KeyRound className="w-4 h-4 text-text-muted" />}
+                    rightIcon={
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="p-1 text-text-muted hover:text-navy transition-colors cursor-pointer"
+                        tabIndex={-1}
+                        aria-label={showPassword ? "Hide passcode" : "Show passcode"}
+                      >
+                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    }
                     required
                   />
 
                   {!isExistingMode && (
                     <Input
                       label="Confirm Passcode"
-                      type="password"
+                      type={showConfirmPassword ? "text" : "password"}
                       placeholder="Re-enter passcode"
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       leftIcon={<KeyRound className="w-4 h-4 text-text-muted" />}
+                      rightIcon={
+                        <button
+                          type="button"
+                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                          className="p-1 text-text-muted hover:text-navy transition-colors cursor-pointer"
+                          tabIndex={-1}
+                          aria-label={showConfirmPassword ? "Hide passcode" : "Show passcode"}
+                        >
+                          {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      }
                       required
                     />
+                  )}
+
+                  {/* Passcode Security Notice Callout */}
+                  {!isExistingMode && (
+                    <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/25 text-amber-900 flex items-start gap-2.5 text-xs">
+                      <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                      <div className="leading-relaxed">
+                        <strong className="font-extrabold text-amber-900 block mb-0.5">Important Security Notice:</strong>
+                        Please use a passcode you can easily remember. This passcode is required to authorize all your votes during the exhibition. If you forget your passcode, you will not be granted voting rights.
+                      </div>
+                    </div>
                   )}
 
                   <div className="pt-2">
